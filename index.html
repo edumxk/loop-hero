@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loop Hero (Mini-RPG)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="main-menu-view">
+        <h1 class="game-title">Loop Hero</h1>
+
+        <div id="continue-game-section" class="view-hidden">
+            <p class="game-subtitle">Continuar Jogo:</p>
+            <div id="continue-game-list">
+            </div>
+        </div>
+
+        <div id="new-game-section">
+            <p class="game-subtitle" id="new-game-title">Escolha seu Herói:</p>
+            <div id="hero-selection-grid">
+                <button class="hero-card" data-hero-id="human_knight">
+                    <img src="assets/heroes/human_knight.png" alt="Humano">
+                    <h3>Cavaleiro Humano</h3>
+                    <p>Equilibrado (Espada e Escudo)</p>
+                </button>
+                <button class="hero-card" data-hero-id="dwarf_berserker">
+                    <img src="assets/heroes/dwarf_berserker.png" alt="Anão">
+                    <h3>Berserker Anão</h3>
+                    <p>Alto Dano (Machado de 2 Mãos)</p>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="game-view" class="view-hidden">
+        <div id="game-screen">
+            <div class="character-area">
+                <h2 id="monster-name-text">Monstro</h2>
+                <div id="monster-sprite" class="sprite"></div>
+                <div class="hp-bar-container">
+                    <div id="monster-hp-bar" class="hp-bar"></div>
+                </div>
+                <span id="monster-hp-text">?/?</span>
+
+                <div class="stats-display" id="monster-stats-display">
+                    <span>ATK: <b id="monster-stat-atk">?</b></span>
+                    <span>DEF: <b id="monster-stat-def">?</b></span>
+                    <span>CRIT: <b id="monster-stat-crit">?</b>%</span>
+                </div>
+            </div>
+
+            <div class="character-area">
+                <h2 id="player-name-text">Herói</h2>
+                <div id="player-sprite" class="sprite"></div>
+                <div class="hp-bar-container">
+                    <div id="player-hp-bar" class="hp-bar"></div>
+                </div>
+                <span id="player-hp-text">?/?</span>
+
+                <div class="stats-display" id="player-stats-display">
+                    <span>ATK: <b id="player-stat-atk">?</b></span>
+                    <span>DEF: <b id="player-stat-def">?</b></span>
+                    <span>CRIT: <b id="player-stat-crit">?</b>%</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="battle-controls">
+            <div id="log-area">
+                <p id="game-log">Iniciando o jogo...</p>
+            </div>
+            <div id="menu-area">
+                <button data-action="attack">Atacar</button>
+                <button data-action="defend">Defender</button>
+                <button data-action="potion">Usar Poção (<span id="potion-count">?</span>)</button>
+            </div>
+        </div>
+
+        <div id="game-over-area" style="display: none;">
+            <h3 id="game-over-message"></h3>
+            <button id="return-to-menu-btn">Voltar ao Menu</button>
+        </div>
+
+    </div>
+    <div id="map-view" class="view-hidden">
+        <h2 id="map-name">Carregando Mapa...</h2>
+
+        <div id="map-hud">
+            <span>❤️ HP: <b id="map-hud-hp">? / ?</b></span>
+            <span>💰 Ouro: <b id="map-hud-gold">?</b></span>
+            <span>🧪 Poções: <b id="map-hud-potions">?</b></span>
+        </div>
+        <div id="map-grid-container">
+            <div id="map-grid">
+            </div>
+        </div>
+
+        <div id="map-log-area">
+            <p id="map-log">Use as setas para mover.</p>
+        </div>
+
+        <div id="map-controls">
+            <button class="move-btn" data-direction="up">▲</button>
+            <div class="move-lr">
+                <button class="move-btn" data-direction="left">◄</button>
+                <button class="move-btn" data-direction="right">►</button>
+            </div>
+            <button class="move-btn" data-direction="down">▼</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
