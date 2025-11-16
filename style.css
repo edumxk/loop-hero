@@ -1,6 +1,4 @@
 /* --- 1. Reset Global e Tema Base --- */
-
-/* Força um layout mais previsível */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -15,6 +13,7 @@ body {
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    overflow: hidden; /* Previne scroll da tela inteira */
 }
 
 h1, h2, h3, h4, p {
@@ -23,20 +22,17 @@ h1, h2, h3, h4, p {
 }
 
 h1, h2, h3 {
-    color: #ffa500; /* Laranja é nossa cor de destaque */
+    color: #ffa500;
     text-align: center;
 }
 
 /* --- 2. Controle de Layout e "Telas" --- */
-
-/* Esconde uma tela */
 .view-hidden {
     display: none !important;
 }
 
-/* Estilo base para as "telas" principais */
 #main-menu-view,
-#game-view {
+#map-view {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -44,10 +40,9 @@ h1, h2, h3 {
 }
 
 /* --- 3. Menu Principal e Seleção de Herói --- */
-
 #main-menu-view {
     justify-content: center;
-    min-height: 100vh; /* Ocupa a tela inteira */
+    min-height: 100vh;
     padding: 20px;
 }
 
@@ -91,14 +86,13 @@ h1, h2, h3 {
     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }
 
-/* AJUSTE DA IMAGEM DO MENU (seu pedido) */
 .hero-card img {
     width: 100px;
     height: 100px;
-    border-radius: 8px; /* Quadrado fica melhor que círculo */
+    border-radius: 8px;
     border: 2px solid #444;
     background-color: #333;
-    object-fit: cover; /* Impede que a imagem distorça */
+    object-fit: cover;
     image-rendering: pixelated; /* Para pixel art */
 }
 
@@ -112,120 +106,163 @@ h1, h2, h3 {
     color: #ccc;
 }
 
-/* --- 4. Tela de Batalha (O Jogo) --- */
-
+/* --- 4. Tela de Batalha (NOVO LAYOUT) --- */
 #game-view {
-    padding: 20px 0;
-}
-
-#game-screen {
-    display: flex;
-    justify-content: space-around;
-    width: 90%;
-    max-width: 800px;
-    border: 2px solid #555;
-    background-color: #2a2a2a;
-    padding: 20px;
-    border-radius: 10px;
-    margin-top: 10px;
-}
-
-.character-area {
+    position: relative;
+    width: 100%;
+    height: 100vh; /* Ocupa a tela inteira */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 45%;
+    justify-content: space-between; /* Empurra HUD (topo) e Log/Menu (baixo) */
 }
 
-.character-area h2 {
-    font-size: 1.2em;
-    height: 40px; /* Altura fixa para o nome/nível não "pular" */
+#battle-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* !! IMPORTANTE: Crie esta pasta e adicione uma imagem de fundo !! */
+    background-image: url('assets/backgrounds/mountain_forest.png'); 
+    background-size: cover;
+    background-position: center bottom;
+    z-index: 0; /* Fica atrás de tudo */
+}
+
+/* Contêiner para os sprites */
+#battle-arena {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
-    align-items: center;
-    margin-bottom: 10px;
+    justify-content: space-between;
+    align-items: flex-end; /* Alinha no "chão" */
+    padding: 0 5%;
+    z-index: 1; /* Acima do fundo */
+    pointer-events: none; /* Deixa os cliques passarem */
 }
 
-/* AJUSTE DA IMAGEM DA BATALHA (seu pedido) */
 .sprite {
+    position: relative;
     width: 150px;
     height: 150px;
-    background-color: #333;
-    border: 3px solid #666;
-    border-radius: 5px;
-    /* 'contain' garante que o sprite todo apareça */
     background-size: contain;
     background-repeat: no-repeat;
-    background-position: center;
-    image-rendering: pixelated; /* Essencial para pixel art */
-    /* Removemos filtros para mostrar as cores originais */
+    background-position: center bottom;
+    image-rendering: pixelated; /* Para pixel art */
+    margin-bottom: 50px; /* Ajusta a altura do "chão" */
 }
 
-/* Barras de HP */
+#monster-sprite {
+    /* Inverte o monstro para encarar o herói */
+    transform: scaleX(-1);
+}
+
+/* HUD da Batalha (Topo) */
+#battle-hud {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 900px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    margin-top: 20px;
+    z-index: 2; /* Acima da arena */
+}
+
+.hud-section {
+    flex: 1;
+    padding: 0 10px;
+}
+.hud-section.monster-info { text-align: right; }
+
 .hp-bar-container {
     width: 100%;
     background-color: #555;
     border: 1px solid #000;
     border-radius: 5px;
-    height: 25px;
-    margin-top: 15px;
+    height: 20px;
+    margin-top: 5px;
     overflow: hidden;
 }
-
 .hp-bar {
     height: 100%;
     transition: width 0.5s ease-in-out;
     border-radius: 3px;
 }
+#battle-player-hp-bar { background-color: #4CAF50; } /* Verde */
+#battle-monster-hp-bar { background-color: #f44336; } /* Vermelho */
 
-#player-hp-bar {
-    background-color: #4CAF50; /* Verde */
-}
-
-#monster-hp-bar {
-    background-color: #f44336; /* Vermelho */
-}
-
-.character-area span {
+.hud-section span {
     margin-top: 5px;
     font-size: 0.9em;
     color: #ccc;
+    display: block; /* Garante que o span fique abaixo da barra */
 }
 
-/* --- 5. UI de Batalha (Log e Controles) --- */
-
-#battle-controls,
-#game-over-area {
-    width: 90%;
-    max-width: 800px;
-    margin-top: 20px;
-    text-align: center;
+/* Stats (ATK, DEF, CRIT) */
+.stats-display {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    margin-top: 10px;
+    background-color: rgba(0,0,0,0.3);
+    padding: 5px;
+    border-radius: 4px;
 }
+.stats-display span {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #ccc;
+    margin-top: 0;
+}
+.stats-display b {
+    color: #f0f0f0;
+}
+.monster-info .stats-display { justify-content: flex-end; gap: 15px; }
+.player-info .stats-display { justify-content: flex-start; gap: 15px; }
 
+
+/* Log e Controles (Baixo) */
 #log-area {
-    background-color: #2a2a2a;
+    background-color: rgba(0, 0, 0, 0.7);
     border: 2px solid #555;
     border-radius: 5px;
     padding: 15px;
     min-height: 60px;
+    width: 90%;
+    max-width: 800px;
+    z-index: 2;
+    margin-bottom: 10px;
 }
-
 #game-log {
     font-size: 1.1em;
     font-style: italic;
     color: #eee;
+    text-align: center;
 }
 
 #menu-area {
-    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    width: 90%;
+    max-width: 800px;
+    z-index: 2;
+    margin-bottom: 20px; /* Distância da base */
 }
 
-/* Estilo Padrão de Botão */
 #menu-area button,
 #game-over-area button {
     font-size: 1em;
     font-weight: bold;
     padding: 12px 20px;
-    margin: 5px;
     cursor: pointer;
     background-color: #ffa500;
     color: #1a1a1a;
@@ -233,13 +270,11 @@ h1, h2, h3 {
     border-radius: 5px;
     transition: all 0.3s;
 }
-
 #menu-area button:hover,
 #game-over-area button:hover {
     background-color: #ffc966;
     transform: translateY(-2px);
 }
-
 #menu-area button:disabled {
     background-color: #555;
     color: #999;
@@ -247,98 +282,119 @@ h1, h2, h3 {
     opacity: 0.7;
 }
 
+/* Game Over (Sobre tudo) */
 #game-over-area {
-    display: none; /* Controlado pelo JS */
-    background-color: #2a2a2a;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    
+    background-color: rgba(0,0,0,0.8);
     border: 2px solid #555;
-    padding: 20px;
-    border-radius: 5px;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
 }
-
 #game-over-message {
     font-size: 1.4em;
     margin-bottom: 15px;
 }
 
-/* --- 6. Animações --- */
 
+/* --- 5. Animações --- */
 .hit-animation {
     animation: shake 0.3s;
 }
 
 @keyframes shake {
-    0% { transform: translateX(0); }
+    0% { transform: scaleX(-1) translateX(0); } /* Invertido para o monstro */
+    25% { transform: scaleX(-1) translateX(-5px); }
+    50% { transform: scaleX(-1) translateX(5px); }
+    75% { transform: scaleX(-1) translateX(-5px); }
+    100% { transform: scaleX(-1) translateX(0); }
+}
+
+#player-sprite.hit-animation {
+    animation: shake-player 0.3s;
+}
+
+@keyframes shake-player {
+    0% { transform: translateX(0); } /* Normal para o jogador */
     25% { transform: translateX(-5px); }
     50% { transform: translateX(5px); }
     75% { transform: translateX(-5px); }
     100% { transform: translateX(0); }
 }
-/* --- 7. Tela do Mapa --- */
+
+/* --- 6. Tela do Mapa --- */
 #map-view {
     padding-top: 20px;
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
-
-#map-name {
-    margin-bottom: 15px;
-}
+#map-name { margin-bottom: 15px; }
 
 #map-grid-container {
     border: 2px solid #555;
     background-color: #000;
-    position: relative; /* <-- ADICIONE ESTA LINHA (ESSENCIAL) */
+    position: relative;
 }
+#map-grid { display: grid; }
 
-#map-grid {
-    display: grid;
-    /* O JS vai definir 'grid-template-columns' */
-}
-
-/* Células do Mapa */
 .map-cell {
     width: 40px;
     height: 40px;
     background-color: #333; /* Parede (0) */
-    font-size: 1.5em;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
     border: 1px solid #222;
 }
-.map-cell.path {
-    background-color: #666; /* Caminho (1) */
-}
-.map-cell.start {
-    background-color: #4CAF50; /* Verde (S) */
-}
-.map-cell.end {
-    background-color: #f44336; /* Vermelho (E) */
-}
+.map-cell.path { background-color: #666; }
+.map-cell.start { background-color: #4CAF50; }
+.map-cell.end { background-color: #f44336; }
+
+/* Ícones de Evento do Mapa */
 .map-cell.event::after {
-    content: '?'; /* Marca de evento */
+    content: '?';
     color: #ffa500;
     position: absolute;
     font-weight: bold;
+    font-size: 0.8em;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.map-cell.monster-event::after {
+    content: '⚔️';
+    position: absolute;
+    font-size: 0.8em;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.map-cell.completed::after {
+    content: '✔️';
+    color: #4CAF50;
+    position: absolute;
+    font-size: 0.8em;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
-/* Jogador no Mapa */
 #player-avatar {
     position: absolute;
     width: 30px;
     height: 30px;
-    background-color: #3498db; /* Azul */
+    background-color: #3498db;
     border: 2px solid #fff;
     border-radius: 50%;
     z-index: 10;
     transition: all 0.2s ease-in-out;
-    /* O JS vai definir 'top' e 'left' */
 }
 
-/* Controles do Mapa */
 #map-log-area {
     margin-top: 15px;
     font-style: italic;
@@ -362,36 +418,12 @@ h1, h2, h3 {
 }
 .move-btn:hover { background-color: #555; }
 
-/* --- 8. Stats de Batalha (NOVO) --- */
-.stats-display {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    width: 100%;
-    margin-top: 10px;
-    background-color: #2a2a2a;
-    padding: 5px;
-    border-radius: 4px;
-    border-top: 1px solid #444;
-}
-
-.stats-display span {
-    font-size: 0.9em;
-    font-weight: bold;
-    color: #ccc;
-}
-
-.stats-display b {
-    color: #f0f0f0; /* Branco */
-    font-weight: bold;
-}
-
-/* --- 9. Map HUD (NOVO) --- */
+/* HUD do Mapa */
 #map-hud {
     display: flex;
     justify-content: center;
-    gap: 20px; /* Reduz o gap para caber mais */
-    flex-wrap: wrap; /* Permite quebrar a linha em telas pequenas */
+    gap: 20px;
+    flex-wrap: wrap;
     margin-bottom: 15px;
     background-color: #2a2a2a;
     padding: 8px 15px;
@@ -403,224 +435,4 @@ h1, h2, h3 {
     font-weight: bold;
     color: #ccc;
 }
-#map-hud b {
-    color: #ffa500;
-}
-
-/* ... (estilos anteriores) ... */
-
-/* Células do Mapa */
-.map-cell {
-    /* ... (estilos da célula) ... */
-    position: relative;
-}
-
-/* Ícone de Evento '?' (Tesouro/Armadilha) */
-.map-cell.event::after {
-    content: '?';
-    color: #ffa500; /* Laranja */
-    position: absolute;
-    font-weight: bold;
-    font-size: 0.8em;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-/* Ícone de Batalha '⚔️' */
-.map-cell.monster-event::after {
-    content: '⚔️';
-    position: absolute;
-    font-size: 0.8em;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-/* Ícone de Concluído '✔️' */
-.map-cell.completed::after {
-    content: '✔️';
-    color: #4CAF50; /* Verde */
-    position: absolute;
-    font-size: 0.8em;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-/* --- 8. Novo Estilo da Tela de Batalha --- */
-
-#game-view {
-    position: relative; /* Para posicionar o cenário e elementos dentro */
-    width: 100%;
-    height: 100vh; /* Ocupa a altura total da viewport */
-    overflow: hidden; /* Garante que nada saia do contêiner */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between; /* Empurra HUD para cima, log para baixo */
-    background-color: #222; /* Cor de fallback */
-}
-
-#battle-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('assets/backgrounds/mountain_forest.png'); /* IMAGEM DO CENÁRIO */
-    background-size: cover; /* Cobre todo o contêiner */
-    background-position: center bottom; /* Foca a parte de baixo (chão) */
-    z-index: 0; /* Fica atrás de tudo */
-}
-
-/* Contêiner para os sprites do herói e monstro */
-#battle-arena {
-    position: relative; /* Para posicionar os personagens */
-    width: 100%;
-    height: 70%; /* Ajuste a altura conforme a necessidade */
-    display: flex;
-    justify-content: space-between; /* Herói de um lado, monstro do outro */
-    align-items: flex-end; /* Alinha na parte de baixo do contêiner */
-    padding: 0 5%; /* Espaçamento lateral */
-    z-index: 1; /* Acima do fundo */
-    pointer-events: none; /* Não captura cliques */
-}
-
-#player-sprite, #monster-sprite {
-    position: relative; /* Para ajustes finos de posição */
-    width: 120px; /* Tamanho base dos sprites */
-    height: 120px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center bottom; /* Alinha o sprite pelo chão */
-    image-rendering: pixelated; /* Para pixel art */
-}
-
-#player-sprite {
-    /* Ajuste de posição específica para o herói */
-    transform: translateY(10px); /* Ajusta para descer um pouco mais */
-    left: 20px; /* Empurra um pouco para a direita (opcional) */
-}
-
-#monster-sprite {
-    /* Ajuste de posição específica para o monstro */
-    transform: translateY(-20px) scaleX(-1); /* Inverte o monstro horizontalmente e ajusta */
-    right: 20px; /* Empurra um pouco para a esquerda (opcional) */
-}
-
-/* HUD da Batalha */
-#battle-hud {
-    display: flex;
-    justify-content: space-between;
-    width: 90%;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.6);
-    border-radius: 8px;
-    margin-top: 20px; /* Empurra para baixo do topo */
-    z-index: 2; /* Acima do cenário */
-}
-
-#battle-log {
-    width: 90%;
-    min-height: 50px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: #eee;
-    padding: 10px;
-    margin-bottom: 20px; /* Empurra para cima do rodapé */
-    border-radius: 8px;
-    text-align: center;
-    font-size: 0.9em;
-    z-index: 2; /* Acima do cenário */
-}
-
-/* Áreas de Informação do HUD (HP, NOME, etc.) */
-.hud-section {
-    flex: 1;
-    text-align: center;
-    color: #fff;
-}
-.hud-section.player-info { text-align: left; }
-.hud-section.monster-info { text-align: right; }
-
-.hud-bar {
-    height: 10px;
-    background-color: #555;
-    border-radius: 5px;
-    margin-top: 5px;
-    overflow: hidden;
-}
-.hud-fill {
-    height: 100%;
-    width: 100%; /* Será ajustado via JS */
-    background-color: #e74c3c; /* Cor do HP */
-    border-radius: 5px;
-    transition: width 0.3s ease-in-out;
-}
-.hud-name { font-weight: bold; margin-bottom: 5px; }
-.hud-hp { font-size: 0.8em; }
-
-/* Botões de Ação da Batalha */
-#menu-area {
-    position: absolute; /* Para sobrepor os sprites */
-    bottom: 20px; /* Distância da parte inferior */
-    width: 80%;
-    display: flex;
-    justify-content: space-around;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.8);
-    border-radius: 8px;
-    z-index: 3; /* Acima de tudo para ser clicável */
-    pointer-events: auto; /* Permite cliques nos botões */
-}
-
-#menu-area button {
-    padding: 10px 20px;
-    font-size: 1.1em;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-#menu-area button:hover {
-    background-color: #2980b9;
-}
-
-/* Game Over Message */
-#game-over-area {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 30px;
-    border-radius: 10px;
-    text-align: center;
-    z-index: 10;
-}
-#game-over-message {
-    font-size: 1.5em;
-    margin-bottom: 20px;
-}
-#game-over-area button {
-    padding: 10px 20px;
-    font-size: 1em;
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-#game-over-area button:hover {
-    background-color: #c0392b;
-}
-
-/* --- Temporários para Debug/Assets --- */
-/*
-#player-sprite { background-color: blue; }
-#monster-sprite { background-color: red; }
-*/
+#map-hud b { color: #ffa500; }

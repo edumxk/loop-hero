@@ -12,13 +12,11 @@
 
     <div id="main-menu-view">
         <h1 class="game-title">Loop Hero</h1>
-
         <div id="continue-game-section" class="view-hidden">
             <p class="game-subtitle">Continuar Jogo:</p>
             <div id="continue-game-list">
             </div>
         </div>
-
         <div id="new-game-section">
             <p class="game-subtitle" id="new-game-title">Escolha seu Herói:</p>
             <div id="hero-selection-grid">
@@ -34,51 +32,52 @@
                 </button>
             </div>
         </div>
-
     </div>
 
     <div id="game-view" class="view-hidden">
-        <div id="game-screen">
-            <div class="character-area">
-                <h2 id="monster-name-text">Monstro</h2>
-                <div id="monster-sprite" class="sprite"></div>
+
+        <div id="battle-background"></div>
+
+        <div id="battle-hud">
+            <div class="hud-section player-info">
+                <h2 id="battle-player-name">Herói</h2>
                 <div class="hp-bar-container">
-                    <div id="monster-hp-bar" class="hp-bar"></div>
+                    <div id="battle-player-hp-bar" class="hp-bar"></div>
                 </div>
-                <span id="monster-hp-text">?/?</span>
-
-                <div class="stats-display" id="monster-stats-display">
-                    <span>ATK: <b id="monster-stat-atk">?</b></span>
-                    <span>DEF: <b id="monster-stat-def">?</b></span>
-                    <span>CRIT: <b id="monster-stat-crit">?</b>%</span>
-                </div>
-            </div>
-
-            <div class="character-area">
-                <h2 id="player-name-text">Herói</h2>
-                <div id="player-sprite" class="sprite"></div>
-                <div class="hp-bar-container">
-                    <div id="player-hp-bar" class="hp-bar"></div>
-                </div>
-                <span id="player-hp-text">?/?</span>
-
+                <span id="battle-player-hp-text">?/?</span>
                 <div class="stats-display" id="player-stats-display">
                     <span>ATK: <b id="player-stat-atk">?</b></span>
                     <span>DEF: <b id="player-stat-def">?</b></span>
                     <span>CRIT: <b id="player-stat-crit">?</b>%</span>
                 </div>
             </div>
+            <div class="hud-section monster-info">
+                <h2 id="battle-monster-name">Monstro</h2>
+                <div class="hp-bar-container">
+                    <div id="battle-monster-hp-bar" class="hp-bar"></div>
+                </div>
+                <span id="battle-monster-hp-text">?/?</span>
+                <div class="stats-display" id="monster-stats-display">
+                    <span>ATK: <b id="monster-stat-atk">?</b></span>
+                    <span>DEF: <b id="monster-stat-def">?</b></span>
+                    <span>CRIT: <b id="monster-stat-crit">?</b>%</span>
+                </div>
+            </div>
         </div>
 
-        <div id="battle-controls">
-            <div id="log-area">
-                <p id="game-log">Iniciando o jogo...</p>
-            </div>
-            <div id="menu-area">
-                <button data-action="attack">Atacar</button>
-                <button data-action="defend">Defender</button>
-                <button data-action="potion">Usar Poção (<span id="potion-count">?</span>)</button>
-            </div>
+        <div id="battle-arena">
+            <div id="player-sprite" class="sprite"></div>
+            <div id="monster-sprite" class="sprite"></div>
+        </div>
+
+        <div id="log-area">
+            <p id="game-log">Iniciando o jogo...</p>
+        </div>
+
+        <div id="menu-area">
+            <button id="attack-btn" data-action="attack">Atacar</button>
+            <button id="defend-btn" data-action="defend">Defender</button>
+            <button id="potion-btn" data-action="potion">Usar Poção (<span id="potion-count">?</span>)</button>
         </div>
 
         <div id="game-over-area" style="display: none;">
@@ -87,9 +86,9 @@
         </div>
 
     </div>
+
     <div id="map-view" class="view-hidden">
         <h2 id="map-name">Carregando Mapa...</h2>
-
         <div id="map-hud">
             <span>❤️ HP: <b id="map-hud-hp">? / ?</b></span>
             <span>💰 Ouro: <b id="map-hud-gold">?</b></span>
@@ -99,11 +98,9 @@
             <div id="map-grid">
             </div>
         </div>
-
         <div id="map-log-area">
             <p id="map-log">Use as setas para mover.</p>
         </div>
-
         <div id="map-controls">
             <button class="move-btn" data-direction="up">▲</button>
             <div class="move-lr">
@@ -113,6 +110,7 @@
             <button class="move-btn" data-direction="down">▼</button>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 

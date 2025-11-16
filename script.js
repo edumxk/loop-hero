@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- Seletores de View ---
-    
     const mainMenuView = document.getElementById('main-menu-view');
     const gameView = document.getElementById('game-view');
     const mapView = document.getElementById('map-view');
@@ -14,50 +13,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const continueGameList = document.getElementById('continue-game-list');
     const newGameTitle = document.getElementById('new-game-title');
     
-    // --- Seletores de Batalha ---
+    // --- Seletores de Batalha (NOVA ESTRUTURA) ---
     const returnToMenuBtn = document.getElementById('return-to-menu-btn');
     const menuArea = document.getElementById('menu-area');
     const gameOverArea = document.getElementById('game-over-area');
     const gameOverMessage = document.getElementById('game-over-message');
-    const battleButtons = document.querySelectorAll('#menu-area button');
     
-    const playerNameText = document.getElementById('player-name-text');
-    const playerHpBar = document.getElementById('player-hp-bar');
-    const playerHpText = document.getElementById('player-hp-text');
+    // Botões
+    const attackBtn = document.getElementById('attack-btn');
+    const defendBtn = document.getElementById('defend-btn');
+    const potionBtn = document.getElementById('potion-btn');
+    const battleButtons = document.querySelectorAll('#menu-area button'); // Para toggle
+    
+    // HUD
+    const battlePlayerName = document.getElementById('battle-player-name');
+    const battlePlayerHpBar = document.getElementById('battle-player-hp-bar');
+    const battlePlayerHpText = document.getElementById('battle-player-hp-text');
+    const battleMonsterName = document.getElementById('battle-monster-name');
+    const battleMonsterHpBar = document.getElementById('battle-monster-hp-bar');
+    const battleMonsterHpText = document.getElementById('battle-monster-hp-text');
+    const potionCountEl = document.getElementById('potion-count');
+    const gameLogEl = document.getElementById('game-log'); // Log de batalha
+    
+    // Sprites
     const playerSprite = document.getElementById('player-sprite');
-    
-    const monsterNameText = document.getElementById('monster-name-text');
-    const monsterHpBar = document.getElementById('monster-hp-bar');
-    const monsterHpText = document.getElementById('monster-hp-text');
     const monsterSprite = document.getElementById('monster-sprite');
 
-    const potionCountEl = document.getElementById('potion-count');
-    const gameLogEl = document.getElementById('game-log');
-
-    // --- Seletores do Mapa ---
-    const mapName = document.getElementById('map-name');
-    const mapGridContainer = document.getElementById('map-grid-container'); // <-- MUDANÇA: Seleciona o Container
-    const mapGrid = document.getElementById('map-grid');
-    const mapLog = document.getElementById('map-log');
-    const mapControls = document.getElementById('map-controls');
-
-    // NOVOS Seletores de Stats do Jogador
+    // Stats
     const playerStatAtk = document.getElementById('player-stat-atk');
     const playerStatDef = document.getElementById('player-stat-def');
     const playerStatCrit = document.getElementById('player-stat-crit');
-
-    // NOVOS Seletores de Stats do Monstro
     const monsterStatAtk = document.getElementById('monster-stat-atk');
     const monsterStatDef = document.getElementById('monster-stat-def');
     const monsterStatCrit = document.getElementById('monster-stat-crit');
 
-    // --- NOVOS Seletores de HUD ---
+
+    // --- Seletores do Mapa ---
+    const mapName = document.getElementById('map-name');
+    const mapGridContainer = document.getElementById('map-grid-container');
+    const mapGrid = document.getElementById('map-grid');
+    const mapLog = document.getElementById('map-log');
+    const mapControls = document.getElementById('map-controls');
     const mapHudGold = document.getElementById('map-hud-gold');
     const mapHudPotions = document.getElementById('map-hud-potions');
-    const mapHudHp = document.getElementById('map-hud-hp'); // <-- ADICIONE ESTE
-    // ===================================================================
-    // 1. LÓGICA DE ROTEAMENTO DE TELA (API)
-    // ===================================================================
+    const mapHudHp = document.getElementById('map-hud-hp');
     
     // ===================================================================
     // 1. LÓGICA DE ROTEAMENTO DE TELA (API)
@@ -73,83 +72,61 @@ document.addEventListener('DOMContentLoaded', () => {
         // Roteia para a view correta
         if (response.view === 'map') {
             
-            // 1. Atualiza o mapa (se necessário)
             if(response.player && response.map_data) {
                 currentPlayerId = response.player.hero_id_key;
                 drawMapScreen(response.player, response.map_data);
             }
-            // 2. Move o avatar
             if (response.player_pos) {
                 movePlayerAvatar(response.player_pos.x, response.player_pos.y);
             }
-            // 3. Atualiza o HUD (HP, Ouro, etc.)
             if (response.hud_update) {
                 updateMapHud(response.hud_update);
             }
-            // 4. Atualiza o Log do Mapa
             if (response.log) {
                  mapLog.innerText = response.log;
             }
 
-            // ================================================================
-            // A CORREÇÃO ESTÁ AQUI (Lógica de Evento)
-            // ================================================================
             if (response.event) {
-                // EVENTO TIPO MONSTRO: Trava os controles e espera 1s
                 if (response.event.type === 'monster') {
                     mapLog.innerText = "Você encontrou um monstro! Preparando para a batalha...";
-                    mapControls.style.pointerEvents = 'none'; // TRAVA
+                    mapControls.style.pointerEvents = 'none';
                     
-                    // ================================================================
-                    // A CORREÇÃO ESTÁ AQUI
-                    // ================================================================
-                    // 1. Pega a dificuldade E o novo monster_id do evento
                     const difficulty = response.event.difficulty || 'easy';
-                    const monsterId = response.event.monster_id || null; // <-- Pega o ID
+                    const monsterId = response.event.monster_id || null;
                     
                     setTimeout(() => {
-                        // 2. Envia ambos para a API
                         sendAction('trigger_battle', { 
                             hero_id: currentPlayerId,
                             difficulty: difficulty,
-                            monster_id: monsterId // <-- Envia o ID
+                            monster_id: monsterId
                         });
-                    }, 500);
-                    // ================================================================
+                    }, 1000); // 1-segundo de atraso
 
                 }
-                
-                // EVENTO TIPO ARMADILHA/TESOURO: Ação foi instantânea.
                 else if (response.event.type === 'trap' || response.event.type === 'treasure') {
                     const x = response.player_pos.x;
                     const y = response.player_pos.y;
-                    
-                    // Em vez de calcular o índice, selecionamos pelo ID:
                     const cellToUpdate = document.getElementById(`cell-${y}-${x}`);
                     
                     if (cellToUpdate) {
-                        cellToUpdate.classList.remove('event', 'monster-event'); // Remove '?'
-                        cellToUpdate.classList.add('completed'); // Adiciona '✔️'
+                        cellToUpdate.classList.remove('event', 'monster-event');
+                        cellToUpdate.classList.add('completed');
                     }
                     mapControls.style.pointerEvents = 'auto';
                 }
                 
             } else {
-                // SEM EVENTO
-                mapControls.style.pointerEvents = 'auto'; // DESTRAVA
+                mapControls.style.pointerEvents = 'auto';
             }
-            // ================================================================
 
             showView('map-view');
 
         } else if (response.view === 'battle') {
-            // Batalha carregou, reativa os controles do mapa (para quando a batalha acabar)
             mapControls.style.pointerEvents = 'auto';
             updateBattleScreen(response.battle_data);
             showView('game-view');
 
         } else if (response.view === 'battle_over') {
-            // ... (lógica do 'battle_over' - não mude) ...
             if (response.battle_data) {
                 updateBattleScreen(response.battle_data);
             }
@@ -179,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mapHudHp.innerText = `${hudData.hp} / ${hudData.max_hp}`;
         }
     }
-    // --- TELA DO MAPA ---
+
     function drawMapScreen(player, mapData) {
         mapName.innerText = mapData.name;
         
@@ -190,8 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             max_hp: player.base_stats.max_hp
         });
         
-        mapGrid.innerHTML = ''; // Limpa o mapa
-        
+        mapGrid.innerHTML = '';
         mapGrid.style.gridTemplateColumns = `repeat(${mapData.map[0].length}, 40px)`;
         
         let playerAvatar = document.getElementById('player-avatar');
@@ -201,17 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
             mapGridContainer.appendChild(playerAvatar);
         }
 
-        // Desenha as células do mapa
         mapData.map.forEach((row, y) => {
             row.forEach((cell, x) => {
                 const cellDiv = document.createElement('div');
                 cellDiv.className = 'map-cell';
-                
-                // ================================================================
-                // A CORREÇÃO ESTÁ AQUI (Dando um ID único)
-                // ================================================================
-                cellDiv.id = `cell-${y}-${x}`; // Ex: "cell-1-1"
-                // ================================================================
+                cellDiv.id = `cell-${y}-${x}`;
                 
                 if (cell === 1) cellDiv.classList.add('path');
                 if (cell === 'S') cellDiv.classList.add('start');
@@ -228,9 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     cellDiv.classList.add('completed');
                 } else if (event) {
                     if (event.type === 'monster') {
-                        cellDiv.classList.add('monster-event'); // ⚔️
+                        cellDiv.classList.add('monster-event');
                     } else {
-                        cellDiv.classList.add('event'); // ?
+                        cellDiv.classList.add('event');
                     }
                 }
                 
@@ -243,43 +213,44 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function movePlayerAvatar(x, y) {
         const playerAvatar = document.getElementById('player-avatar');
-        // O 'top' e 'left' agora são relativos ao 'mapGridContainer'
         playerAvatar.style.left = `${x * 40}px`;
         playerAvatar.style.top = `${y * 40}px`;
     }
 
-    // --- TELA DE BATALHA ---
+    // --- TELA DE BATALHA (REESCRITA) ---
     function updateBattleScreen(state) {
         
         // 1. Reset o estado da UI para "Batalha Ativa"
-        menuArea.style.display = 'block';
+        menuArea.style.display = 'flex'; // 'flex' em vez de 'block'
         gameOverArea.style.display = 'none';
 
         // 2. Atualiza JOGADOR
-        playerNameText.innerText = state.player_name;
-        playerHpBar.style.width = state.player_hp_percent + '%';
-        playerHpText.innerText = state.player_hp + ' / ' + state.player_max_hp;
+        battlePlayerName.innerText = state.player_name;
+        battlePlayerHpBar.style.width = state.player_hp_percent + '%';
+        battlePlayerHpText.innerText = state.player_hp + ' / ' + state.player_max_hp;
+        // !! IMPORTANTE: Certifique-se que o 'state.player_sprite' vem da API
+        //    (O game.php já faz isso, usando 'assets/heroes/human_knight.png')
         playerSprite.style.backgroundImage = `url(${state.player_sprite})`;
         
-        // --- ATUALIZAÇÃO DOS STATS DO JOGADOR ---
+        // Stats do Jogador
         playerStatAtk.innerText = state.player_stats.attack;
         playerStatDef.innerText = state.player_stats.defense;
-        playerStatCrit.innerText = state.player_stats.crit_chance.toFixed(1); // ex: 10.5%
+        playerStatCrit.innerText = state.player_stats.crit_chance.toFixed(1);
         
         // 3. Atualiza MONSTRO
-        monsterNameText.innerText = state.monster_name;
-        monsterHpBar.style.width = state.monster_hp_percent + '%';
-        monsterHpText.innerText = state.monster_hp + ' / ' + state.monster_max_hp;
+        battleMonsterName.innerText = state.monster_name;
+        battleMonsterHpBar.style.width = state.monster_hp_percent + '%';
+        battleMonsterHpText.innerText = state.monster_hp + ' / ' + state.monster_max_hp;
         monsterSprite.style.backgroundImage = `url(${state.monster_sprite})`;
         
-        // --- ATUALIZAÇÃO DOS STATS DO MONSTRO ---
+        // Stats do Monstro
         monsterStatAtk.innerText = state.monster_stats.attack;
         monsterStatDef.innerText = state.monster_stats.defense;
-        monsterStatCrit.innerText = state.monster_stats.crit_chance.toFixed(1); // ex: 5.0%
+        monsterStatCrit.innerText = state.monster_stats.crit_chance.toFixed(1);
 
         // 4. Atualiza JOGO
         potionCountEl.innerText = state.potions;
-        gameLogEl.innerText = state.log; // Este é o log de TURNO (ex: "Você atacou...")
+        gameLogEl.innerText = state.log;
         triggerAnimation(playerSprite, state.player_hit);
         triggerAnimation(monsterSprite, state.monster_hit);
         
@@ -294,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('api/game.php?action=check_saves');
             if (!response.ok) {
-                // Tenta ler o erro como JSON
                 const err = await response.json();
                 throw new Error(err.error || 'Falha ao checar saves.');
             }
@@ -344,17 +314,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Lógica de Voltar ao Menu (da Batalha) ---
     returnToMenuBtn.addEventListener('click', () => {
-        // ANTIGO (Errado):
-        // loadMainMenu(); 
-        
-        // NOVO (Correto):
-        // Nós assumimos que 'currentPlayerId' ainda está salvo
-        // (desde quando o mapa foi carregado antes da batalha)
+        // Se o currentPlayerId foi limpo (pela permadeath), volta ao menu.
         if (currentPlayerId) {
-            // Chama a API para recarregar o mapa
             sendAction('load_game', { hero_id: currentPlayerId });
         } else {
-            // Se tudo falhar, volte ao menu principal
             loadMainMenu();
         }
     });
@@ -386,13 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Escutador de Eventos de Batalha ---
-    menuArea.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON' && e.target.hasAttribute('data-action')) {
-            const action = e.target.getAttribute('data-action');
-            sendAction(action, {});
-        }
-    });
+    // --- Escutador de Eventos de Batalha (Botões) ---
+    attackBtn.addEventListener('click', () => sendAction('attack', {}));
+    defendBtn.addEventListener('click', () => sendAction('defend', {}));
+    potionBtn.addEventListener('click', () => sendAction('potion', {}));
 
     // ===================================================================
     // 4. FUNÇÃO CENTRAL DA API
@@ -425,12 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 alert("Erro de conexão com a API.");
             }
-
-            // ================================================================
-            // CORREÇÃO (O Bloco CATCH)
-            // ================================================================
-            // Se qualquer chamada à API falhar, reative os controles
-            // do mapa para evitar que o jogo trave.
             mapControls.style.pointerEvents = 'auto';
         }
     }
@@ -438,51 +392,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Funções Auxiliares de Batalha ---
     function toggleButtons(enable) {
         battleButtons.forEach(button => {
+            // A poção tem sua própria lógica
+            if (button.id === 'potion-btn') return; 
+            
             button.disabled = !enable;
             button.style.opacity = enable ? '1' : '0.5';
         });
+        
+        // Lógica separada para o botão de poção
+        // (Só ativa se for 'enable' E se o 'potionCount' for > 0)
+        const potionCount = parseInt(potionCountEl.innerText) || 0;
+        potionBtn.disabled = !enable || potionCount === 0;
+        potionBtn.style.opacity = potionBtn.disabled ? '0.5' : '1';
     }
 
     function triggerAnimation(element, wasHit) {
         element.classList.remove('hit-animation');
-        if (wasHit) {
-            void element.offsetWidth; 
-            element.classList.add('hit-animation');
+        // Precisamos checar qual elemento é para usar a animação correta
+        if (element.id === 'monster-sprite') {
+            element.classList.remove('hit-animation-player'); // Remove a outra
+            if (wasHit) {
+                void element.offsetWidth; 
+                element.classList.add('hit-animation'); // Animação do monstro (com scaleX)
+            }
+        } else {
+            element.classList.remove('hit-animation'); // Remove a outra
+            if (wasHit) {
+                void element.offsetWidth;
+                element.classList.add('hit-animation-player'); // Animação do jogador (sem scaleX)
+            }
         }
     }
-// ===================================================================
+    
+    // ===================================================================
     // 5. OUVINTE DE COMANDOS DE TECLADO (Keybindings)
     // ===================================================================
 
     document.addEventListener('keydown', (e) => {
-        // Pega a tecla pressionada (em minúsculas)
         const key = e.key.toLowerCase();
 
-        // ---------------------------------------------
         // ROTA 1: Se o MAPA estiver visível
-        // ---------------------------------------------
         if (!mapView.classList.contains('view-hidden')) {
-            // Se os controles de movimento estiverem ativos
             if (mapControls.style.pointerEvents !== 'none' && currentPlayerId) {
-                
                 switch (key) {
                     case 'arrowup':
-                    case 'w': // Adiciona 'W' como bônus
-                        e.preventDefault(); // Impede a página de rolar
+                    case 'w':
+                        e.preventDefault();
                         sendAction('move', { hero_id: currentPlayerId, direction: 'up' });
                         break;
                     case 'arrowdown':
-                    case 's': // Adiciona 'S' como bônus
+                    case 's':
                         e.preventDefault();
                         sendAction('move', { hero_id: currentPlayerId, direction: 'down' });
                         break;
                     case 'arrowleft':
-                    case 'a': // Conflito com 'A' de Atacar, mas aqui estamos no mapa
+                    case 'a':
                         e.preventDefault();
                         sendAction('move', { hero_id: currentPlayerId, direction: 'left' });
                         break;
                     case 'arrowright':
-                    case 'd': // Conflito com 'D' de Defender, mas aqui estamos no mapa
+                    case 'd':
                         e.preventDefault();
                         sendAction('move', { hero_id: currentPlayerId, direction: 'right' });
                         break;
@@ -490,24 +459,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // ---------------------------------------------
         // ROTA 2: Se a BATALHA estiver visível
-        // ---------------------------------------------
-        // Verificamos se 'gameView' está visível E se os botões de ação (menuArea) estão visíveis
-        else if (!gameView.classList.contains('view-hidden') && menuArea.style.display === 'block') {
-            
+        else if (!gameView.classList.contains('view-hidden') && menuArea.style.display !== 'none') {
             switch (key) {
                 case 'a':
-                    e.preventDefault(); // Impede o 'a' de ser digitado
-                    sendAction('attack', {});
+                    e.preventDefault();
+                    if (!attackBtn.disabled) sendAction('attack', {});
                     break;
                 case 'd':
                     e.preventDefault();
-                    sendAction('defend', {});
+                    if (!defendBtn.disabled) sendAction('defend', {});
                     break;
                 case ' ': // Tecla "Space"
-                    e.preventDefault(); // Impede a página de rolar
-                    sendAction('potion', {});
+                    e.preventDefault();
+                    if (!potionBtn.disabled) sendAction('potion', {});
                     break;
             }
         }
@@ -515,4 +480,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ESTADO INICIAL ---
     loadMainMenu();
-}); 
+});
