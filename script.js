@@ -103,23 +103,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     // ================================================================
                     // A CORREÇÃO ESTÁ AQUI
                     // ================================================================
-                    // 1. Pega a dificuldade do evento que o PHP enviou
-                    const difficulty = response.event.difficulty || 'easy'; // Garante um fallback
+                    // 1. Pega a dificuldade E o novo monster_id do evento
+                    const difficulty = response.event.difficulty || 'easy';
+                    const monsterId = response.event.monster_id || null; // <-- Pega o ID
                     
                     setTimeout(() => {
-                        // 2. Envia a dificuldade para a API
+                        // 2. Envia ambos para a API
                         sendAction('trigger_battle', { 
                             hero_id: currentPlayerId,
-                            difficulty: difficulty 
+                            difficulty: difficulty,
+                            monster_id: monsterId // <-- Envia o ID
                         });
-                    }, 500); 
+                    }, 500);
                     // ================================================================
 
                 }
                 
                 // EVENTO TIPO ARMADILHA/TESOURO: Ação foi instantânea.
                 else if (response.event.type === 'trap' || response.event.type === 'treasure') {
-                    // ... (lógica de atualizar o ícone 'completed') ...
+                    const x = response.player_pos.x;
+                    const y = response.player_pos.y;
+                    
+                    // Em vez de calcular o índice, selecionamos pelo ID:
+                    const cellToUpdate = document.getElementById(`cell-${y}-${x}`);
+                    
+                    if (cellToUpdate) {
+                        cellToUpdate.classList.remove('event', 'monster-event'); // Remove '?'
+                        cellToUpdate.classList.add('completed'); // Adiciona '✔️'
+                    }
+                    mapControls.style.pointerEvents = 'auto';
                 }
                 
             } else {
@@ -438,7 +450,69 @@ document.addEventListener('DOMContentLoaded', () => {
             element.classList.add('hit-animation');
         }
     }
+// ===================================================================
+    // 5. OUVINTE DE COMANDOS DE TECLADO (Keybindings)
+    // ===================================================================
+
+    document.addEventListener('keydown', (e) => {
+        // Pega a tecla pressionada (em minúsculas)
+        const key = e.key.toLowerCase();
+
+        // ---------------------------------------------
+        // ROTA 1: Se o MAPA estiver visível
+        // ---------------------------------------------
+        if (!mapView.classList.contains('view-hidden')) {
+            // Se os controles de movimento estiverem ativos
+            if (mapControls.style.pointerEvents !== 'none' && currentPlayerId) {
+                
+                switch (key) {
+                    case 'arrowup':
+                    case 'w': // Adiciona 'W' como bônus
+                        e.preventDefault(); // Impede a página de rolar
+                        sendAction('move', { hero_id: currentPlayerId, direction: 'up' });
+                        break;
+                    case 'arrowdown':
+                    case 's': // Adiciona 'S' como bônus
+                        e.preventDefault();
+                        sendAction('move', { hero_id: currentPlayerId, direction: 'down' });
+                        break;
+                    case 'arrowleft':
+                    case 'a': // Conflito com 'A' de Atacar, mas aqui estamos no mapa
+                        e.preventDefault();
+                        sendAction('move', { hero_id: currentPlayerId, direction: 'left' });
+                        break;
+                    case 'arrowright':
+                    case 'd': // Conflito com 'D' de Defender, mas aqui estamos no mapa
+                        e.preventDefault();
+                        sendAction('move', { hero_id: currentPlayerId, direction: 'right' });
+                        break;
+                }
+            }
+        }
+
+        // ---------------------------------------------
+        // ROTA 2: Se a BATALHA estiver visível
+        // ---------------------------------------------
+        // Verificamos se 'gameView' está visível E se os botões de ação (menuArea) estão visíveis
+        else if (!gameView.classList.contains('view-hidden') && menuArea.style.display === 'block') {
+            
+            switch (key) {
+                case 'a':
+                    e.preventDefault(); // Impede o 'a' de ser digitado
+                    sendAction('attack', {});
+                    break;
+                case 'd':
+                    e.preventDefault();
+                    sendAction('defend', {});
+                    break;
+                case ' ': // Tecla "Space"
+                    e.preventDefault(); // Impede a página de rolar
+                    sendAction('potion', {});
+                    break;
+            }
+        }
+    });
 
     // --- ESTADO INICIAL ---
     loadMainMenu();
-});
+}); 
