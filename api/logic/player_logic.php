@@ -12,7 +12,7 @@ function calculate_combat_stats($base_stats, $combat_stats_base, $equipment) {
     $combat_stats = $combat_stats_base; // Pega 'attack', 'defense', etc. base
 
     // Força aumenta ataque e defesa
-    $combat_stats['attack']  += floor($base_stats['strength'] * 1.5);
+    $combat_stats['attack']  += floor($base_stats['strength'] * 1);
     $combat_stats['defense'] += floor($base_stats['strength'] * 0.5);
 
     // Sorte aumenta chance de crítico
@@ -20,7 +20,7 @@ function calculate_combat_stats($base_stats, $combat_stats_base, $equipment) {
 
     // TODO: Adicionar bônus de equipamento
     if ($equipment['weapon2'] === 'shield') {
-        $combat_stats['defense'] += 5; // Bônus de escudo
+        $combat_stats['defense'] += 3; // Bônus de escudo
     }
 
     return $combat_stats;
@@ -78,7 +78,7 @@ function createNewPlayer($pdo, $hero_id_key) {
         'class_name' => $template['name'],
         'level' => 1,
         'exp' => 0,
-        'exp_to_next_level' => 3,
+        'exp_to_next_level' => 50,
         'hp' => $template['base_stats']['max_hp'],
         'base_stats_json' => json_encode($template['base_stats']),
         'combat_stats_json' => json_encode($combat_stats),
@@ -87,7 +87,7 @@ function createNewPlayer($pdo, $hero_id_key) {
         'current_map_id' => $start_map['id'],
         'current_map_pos_x' => $start_map['start_pos']['x'],
         'current_map_pos_y' => $start_map['start_pos']['y'],
-        'gold' => 0,
+        'gold' => 10,
         'potions' => 3,
         'completed_events_json' => '{}' // Começa com JSON vazio
     ];
@@ -155,7 +155,7 @@ function checkLevelUp($player) {
     if ($player['exp'] >= $player['exp_to_next_level']) {
         $player['level']++;
         $player['exp'] -= $player['exp_to_next_level']; 
-        $player['exp_to_next_level'] = floor($player['exp_to_next_level'] * 1.5);
+        $player['exp_to_next_level'] = floor($player['exp_to_next_level'] * 1.5 * $player['level']);
         $player['attribute_points'] += 1; 
         
         $player['base_stats']['max_hp'] += 10;
@@ -163,7 +163,7 @@ function checkLevelUp($player) {
         $player['base_stats']['luck'] += 1;
     
         
-        $heal_amount = floor($player['base_stats']['max_hp'] * 0.25);
+        $heal_amount = floor($player['base_stats']['max_hp'] * 0.3);
         $player['hp'] = min($player['base_stats']['max_hp'], $player['hp'] + $heal_amount); 
 
         // Recalcula stats de combate (usa o array 'combat_stats' como 'base' de combate)

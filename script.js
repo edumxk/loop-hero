@@ -7,10 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameView = document.getElementById('game-view');
     const mapView = document.getElementById('map-view');
     const loadingOverlay = document.getElementById('loading-overlay'); 
+
     // --- Variáveis de Estado ---
     let currentPlayerId = null;
     let isProcessingAction = false; 
     let battleInterval = null;
+    let gameSpeed = 1; // <--- NOVO: Velocidade padrão
     
     let currentHeroFolder = ''; 
     let currentMonsterFolder = '';
@@ -39,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const defendBtn = document.getElementById('defend-btn');
     const potionBtn = document.getElementById('potion-btn');
     const battleButtons = document.querySelectorAll('#menu-area button');
+    const speedButtons = document.querySelectorAll('.speed-btn'); // <--- NOVO
     
     const battlePlayerName = document.getElementById('battle-player-name');
     const battlePlayerHpBar = document.getElementById('battle-player-hp-bar');
@@ -240,10 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function startBattleLoop() {
         if (battleInterval) clearInterval(battleInterval);
+
         battleInterval = setInterval(() => {
             const isGameOver = gameOverArea.style.display !== 'none';
             if (!isProcessingAction && !isGameOver) {
-                sendAction('tick', {});
+                sendAction('tick', { multiplier: gameSpeed });
             }
         }, 1000);
     }
@@ -254,6 +258,23 @@ document.addEventListener('DOMContentLoaded', () => {
             battleInterval = null;
         }
     }
+
+    speedButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // 1. Atualiza variável visual
+            speedButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // 2. Atualiza valor lógico
+            gameSpeed = parseInt(btn.dataset.speed);
+            
+            // 3. Reinicia o loop IMEDIATAMENTE com a nova velocidade
+            // (Só reinicia se já estivermos em batalha, senão o loop começa errado)
+            if (!gameView.classList.contains('view-hidden')) {
+                startBattleLoop();
+            }
+        });
+    });
     
     // ===================================================================
     // 4. COMUNICAÇÃO COM API
@@ -446,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         menuArea.style.display = 'flex';
         gameOverArea.style.display = 'none';
 
-        /* Config Sprites
+        // 1. Configuração Inicial
         if (currentHeroFolder !== state.player_sprite_folder) {
             currentHeroFolder = state.player_sprite_folder;
             setupSprites('player', currentHeroFolder);
@@ -455,51 +476,84 @@ document.addEventListener('DOMContentLoaded', () => {
             currentMonsterFolder = state.monster_sprite_folder;
             setupSprites('monster', currentMonsterFolder);
         }
-        */
-        // HUD Player
+
+        // 2. Escala
+        const baseSize = 300; 
+        const playerContainer = document.getElementById('player-sprite');
+        const monsterContainer = document.getElementById('monster-sprite');
+        
+        const pSize = baseSize * (state.player_scale || 1.0);
+        const mSize = baseSize * (state.monster_scale || 1.0);
+        
+        if(playerContainer) { playerContainer.style.width = `${pSize}px`; playerContainer.style.height = `${pSize}px`; }
+        if(monsterContainer) { monsterContainer.style.width = `${mSize}px`; monsterContainer.style.height = `${mSize}px`; }
+
+        // 3. HUD Player
         battlePlayerName.innerText = state.player_name;
         battlePlayerHpBar.style.width = state.player_hp_percent + '%';
         battlePlayerHpText.innerText = `${state.player_hp} / ${state.player_max_hp}`;
+        
         playerStatAtk.innerText = state.player_stats.attack;
-        playerStatDef.innerText = state.player_stats.defense;
+        // Usa o 'defense_display' que já vem somado com +10 se tiver buff
+        playerStatDef.innerText = state.player_stats.defense_display; 
+        // Adiciona um indicador visual se estiver buffado
+        if (state.player_def_stacks > 0) {
+            playerStatDef.style.color = '#3498db'; // Azul para indicar buff
+            playerStatDef.innerText += ` (🛡️${state.player_def_stacks})`;
+        } else {
+            playerStatDef.style.color = '#f0f0f0';
+        }
         playerStatCrit.innerText = state.player_stats.crit_chance.toFixed(1);
 
-        // Sprite Player
+        // 4. Sprite Player (Lógica de Stacks)
         if (state.player_hp <= 0) {
             setSprite('player', 'dead', 0);
             isPlayerAnimationPlaying = false;
         } else if (state.player_hit) {
             setSprite('player', 'hit', 500);
-            const pEl = document.getElementById('player-sprite');
-            pEl.classList.remove('hit-animation'); void pEl.offsetWidth; pEl.classList.add('hit-animation');
+            if(playerContainer) {
+                playerContainer.classList.remove('hit-animation'); void playerContainer.offsetWidth; playerContainer.classList.add('hit-animation');
+            }
         } else if (!isPlayerAnimationPlaying) {
-             if (state.player_defending) setSprite('player', 'defence', 0);
+             // MUDANÇA AQUI: Se tiver stacks, fica em posição de defesa
+             if (state.player_def_stacks > 0) setSprite('player', 'defence', 0);
              else setSprite('player', 'idle', 0);
         }
 
-        // HUD Monster
+        // 5. HUD Monstro
         battleMonsterName.innerText = state.monster_name;
         battleMonsterHpBar.style.width = state.monster_hp_percent + '%';
         battleMonsterHpText.innerText = `${state.monster_hp} / ${state.monster_max_hp}`;
+        
         monsterStatAtk.innerText = state.monster_stats.attack;
-        monsterStatDef.innerText = state.monster_stats.defense;
+        monsterStatDef.innerText = state.monster_stats.defense_display;
+        // Indicador visual para o monstro também
+        if (state.monster_def_stacks > 0) {
+            monsterStatDef.style.color = '#c0392b'; // Vermelho/Laranja
+            monsterStatDef.innerText += ` (🛡️${state.monster_def_stacks})`;
+        } else {
+            monsterStatDef.style.color = '#f0f0f0';
+        }
         monsterStatCrit.innerText = state.monster_stats.crit_chance.toFixed(1);
 
-        // Sprite Monster
+        // 6. Sprite Monstro
         if (state.monster_hp <= 0) {
             setSprite('monster', 'dead', 0);
             isMonsterAnimationPlaying = false;
         } else if (state.monster_hit) {
             setSprite('monster', 'hit', 500);
-            const mEl = document.getElementById('monster-sprite');
-            mEl.classList.remove('hit-animation'); void mEl.offsetWidth; mEl.classList.add('hit-animation');
+            if(monsterContainer) {
+                monsterContainer.classList.remove('hit-animation'); void monsterContainer.offsetWidth; monsterContainer.classList.add('hit-animation');
+            }
         } else if (state.player_hit) {
             setSprite('monster', 'attack', 500);
         } else if (!isMonsterAnimationPlaying) {
+            // Opcional: Se quiser sprite de defesa para monstro, use a lógica abaixo:
+            // if (state.monster_def_stacks > 0) setSprite('monster', 'defence', 0); else ...
             setSprite('monster', 'idle', 0);
         }
 
-        // ATB
+        // 7. ATB e Logs
         if (state.meters) {
             if (battlePlayerAtbBar) {
                 battlePlayerAtbBar.style.width = `${state.meters.player}%`;
@@ -511,20 +565,34 @@ document.addEventListener('DOMContentLoaded', () => {
         potionCountEl.innerText = state.potions;
         gameLogEl.innerText = state.log;
         
+        // ATUALIZAÇÃO VISUAL DO COOLDOWN DE DEFESA
+        if (state.player_def_cd > 0) {
+            defendBtn.innerText = `Recarga (${state.player_def_cd})`;
+            defendBtn.dataset.cooldown = "true"; // Marcador para lógica
+        } else {
+            defendBtn.innerText = `Defender (D)`;
+            defendBtn.dataset.cooldown = "false";
+        }
+
         const isGameOver = state.game_over; 
         const playerCanAct = (state.meters && state.meters.player >= 100) && !isGameOver;
         toggleButtons(playerCanAct);
     }
 
     function toggleButtons(enable) {
-        battleButtons.forEach(btn => {
-            if (btn.id === 'potion-btn') return;
-            btn.disabled = !enable;
-            btn.style.opacity = enable ? '1' : '0.5';
-        });
+        // Botão de Ataque (Sempre habilitado se for turno)
+        attackBtn.disabled = !enable;
+        attackBtn.style.opacity = enable ? '1' : '0.5';
+
+        // Botão de Defesa (Habilitado se turno E sem cooldown)
+        const isDefCoolingDown = defendBtn.dataset.cooldown === "true";
+        defendBtn.disabled = !enable || isDefCoolingDown;
+        defendBtn.style.opacity = (!enable || isDefCoolingDown) ? '0.5' : '1';
+
+        // Botão de Poção (Habilitado se turno E tiver poção)
         const pots = parseInt(potionCountEl.innerText) || 0;
         potionBtn.disabled = !enable || pots === 0;
-        potionBtn.style.opacity = potionBtn.disabled ? '0.5' : '1';
+        potionBtn.style.opacity = (!enable || pots === 0) ? '0.5' : '1';
     }
 
     // ===================================================================
