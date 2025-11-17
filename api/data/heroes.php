@@ -6,11 +6,12 @@
 return [
     'human_knight' => [
         'name'     => 'Cavaleiro Humano',
-        'sprite_url' => 'assets/heroes/human_knight.png', // Coloque suas imagens aqui
+        'sprite_folder' => 'assets/heroes/paladino/',
         'base_stats' => [ // Atributos puros
             'max_hp'   => 120,
             'strength' => 7,
             'luck'     => 3,
+            'speed' => 12,
         ],
         'combat_stats_base' => [ // Stats de combate (antes de 'strength' e 'luck')
             'attack'      => 6,
@@ -25,11 +26,12 @@ return [
     ],
     'dwarf_berserker' => [
         'name'     => 'Berserker Anão',
-        'sprite_url' => 'assets/heroes/dwarf_berserker.png',
+        'sprite_folder' => 'assets/heroes/anao/',
         'base_stats' => [
             'max_hp'   => 140,
             'strength' => 8,
             'luck'     => 2,
+            'speed' => 10,
         ],
         'combat_stats_base' => [
             'attack'      => 8,
