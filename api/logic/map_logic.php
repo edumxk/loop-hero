@@ -79,9 +79,29 @@ function processMove($player, $direction) {
         }
         
         if ($event['type'] === 'treasure') {
-            $player['gold'] += $event['value'];
-            $response['log'] = "Você encontrou um tesouro! (+{$event['value']} Ouro)";
-            // Marca como concluído
+            
+            $treasure_type = $event['treasure_type'] ?? 'gold'; // O padrão é 'gold'
+            $value = $event['value'];
+
+            // Verifica o tipo de tesouro e aplica o bônus
+            switch ($treasure_type) {
+                case 'gold':
+                    $player['gold'] += $value;
+                    $response['log'] = "Você encontrou um tesouro! (+{$value} Ouro)";
+                    break;
+                
+                case 'potion':
+                    $player['potions'] += $value;
+                    $response['log'] = "Você encontrou {$value} poção(ões)!";
+                    break;
+                
+                // (Você pode adicionar 'case "key":' etc. aqui no futuro)
+                
+                default:
+                    $response['log'] = "Você encontrou um tesouro misterioso...";
+            }
+            
+            // Marca o evento como concluído
             $player['completed_events'][$map_id][$event_key] = true;
         }
         

@@ -78,7 +78,7 @@ function createNewPlayer($pdo, $hero_id_key) {
         'class_name' => $template['name'],
         'level' => 1,
         'exp' => 0,
-        'exp_to_next_level' => 50,
+        'exp_to_next_level' => 3,
         'hp' => $template['base_stats']['max_hp'],
         'base_stats_json' => json_encode($template['base_stats']),
         'combat_stats_json' => json_encode($combat_stats),

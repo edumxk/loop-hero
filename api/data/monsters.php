@@ -45,6 +45,24 @@ return [
             'attack'        => 4,
             'defense'       => 3,
         ]
+        ],
+    'troll' => [
+        'name'          => 'Troll da Montanha',
+        'sprite_url'    => 'assets/monsters/slime.png', 
+        'base_level'    => 5, // Ele é forte
+        'base_exp'      => 5,
+        'base_gold'     => 10,
+        'stats' => [
+            'max_hp'        => 200,
+            'attack'        => 18,
+            'defense'       => 10,
+            'crit_chance'   => 0.05,
+            'crit_mult'     => 1.5
+        ],
+        'stats_per_level' => [
+            'max_hp'        => 25,
+            'attack'        => 3,
+            'defense'       => 2,
+        ]
     ]
-    // Adicione mais monstros aqui...
 ];

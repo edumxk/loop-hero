@@ -64,18 +64,18 @@ if ($action === 'load_game' || $action === 'start') {
 }
 
 if ($action === 'trigger_battle') {
-   try {
+    try {
         // ================================================================
         // A CORREÇÃO ESTÁ AQUI
         // ================================================================
         $hero_id = $postData['hero_id'];
-        // 1. Recebe a dificuldade do JS
         $difficulty = $postData['difficulty'] ?? 'easy';
+        $monster_id = $postData['monster_id'] ?? null; // <-- Recebe o ID
         
         $player = getPlayerState($pdo, $hero_id);
         
-        // 2. Passa a dificuldade para o spawnMonster
-        $monster = spawnMonster($player['level'], $difficulty);
+        // Passa o ID para o spawnMonster
+        $monster = spawnMonster($player['level'], $difficulty, $monster_id);
         // ================================================================
 
         $_SESSION['battle_state'] = [
