@@ -4,37 +4,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loop Hero (Mini-RPG)</title>
+    <title>Loop Hero: A Floresta Eterna</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <div id="main-menu-view">
-        <h1 class="game-title">Loop Hero</h1>
-        <div id="continue-game-section" class="view-hidden">
-            <p class="game-subtitle">Continuar Jogo:</p>
-            <div id="continue-game-list"></div>
-        </div>
-        <div id="new-game-section">
-            <p class="game-subtitle" id="new-game-title">Escolha seu Herói:</p>
-            <div id="hero-selection-grid">
-                <button class="hero-card" data-hero-id="human_knight">
-                    <img src="assets/heroes/human_knight.png" alt="Humano">
-                    <h3>Cavaleiro Humano</h3>
-                    <p>Equilibrado (Espada e Escudo)</p>
-                </button>
-                <button class="hero-card" data-hero-id="dwarf_berserker">
-                    <img src="assets/heroes/dwarf_berserker.png" alt="Anão">
-                    <h3>Berserker Anão</h3>
-                    <p>Alto Dano (Machado de 2 Mãos)</p>
-                </button>
-            </div>
+    <div id="loading-overlay" class="view-hidden">
+        <div class="loading-content">
+            <h2 class="loading-text">Uma Batalha Sangrenta se Inicia...</h2>
+            <div class="loading-spinner"></div>
         </div>
     </div>
 
-    <div id="game-view" class="view-hidden">
+    <div id="title-screen" class="view-hidden">
+        <h1 class="game-title">A Floresta Eterna</h1>
+        <p class="game-subtitle">O ciclo nunca termina... até que um prevaleça.</p>
+        
+        <div class="menu-buttons">
+            <div id="saved-games-list"></div>
+            <button id="btn-new-game" class="main-menu-btn">Iniciar Novo Ciclo</button>
+        </div>
+        
+        <div class="credits">v1.0 - Loop RPG</div>
+    </div>
 
+    <div id="prologue-view" class="view-hidden">
+        <div class="story-container">
+            <p>A Floresta dos Ecos é uma cicatriz no tempo.</p>
+            <p>Monstros nascem da própria escuridão, ficando mais fortes a cada nascer do sol.</p>
+            <p>Muitos heróis entraram. Nenhum retornou.</p>
+            <p>Quando um cai, outro deve assumir o manto.</p>
+            <p>Sua missão é simples: Limpe a floresta. Quebre o ciclo.</p>
+            <br>
+            <p style="color: #ffa500; font-weight: bold;">Prepare-se.</p>
+        </div>
+        <button id="btn-end-prologue">Escolher Herói</button>
+    </div>
+
+    <div id="hero-selection-view" class="view-hidden">
+        <h2 class="game-subtitle">Quem assumirá o manto?</h2>
+        
+        <div id="hero-selection-grid">
+            <button class="hero-card" 
+                    data-hero-id="human_knight" 
+                    data-folder="assets/heroes/paladino/">
+                <div class="hero-card-image">
+                    <img src="assets/heroes/paladino/idle.png" alt="Paladino">
+                </div>
+                <h3>Paladino</h3>
+                <p>Espada e Escudo.<br>Defesa robusta.</p>
+            </button>
+
+            <button class="hero-card" 
+                    data-hero-id="dwarf_berserker" 
+                    data-folder="assets/heroes/anao/">
+                <div class="hero-card-image">
+                    <img src="assets/heroes/anao/idle.png" alt="Anão">
+                </div>
+                <h3>Berserker Anão</h3>
+                <p>Machado de Duas Mãos.<br>Fúria implacável.</p>
+            </button>
+        </div>
+
+        <button id="btn-back-title" class="secondary-btn">Voltar</button>
+    </div>
+
+    <div id="game-view" class="view-hidden">
         <div id="battle-background"></div>
 
         <div id="battle-hud">
@@ -44,18 +80,25 @@
                     <div id="battle-player-hp-bar" class="hp-bar"></div>
                 </div>
                 <span id="battle-player-hp-text">?/?</span>
+                <div class="atb-bar-container">
+                    <div id="battle-player-atb-bar" class="atb-bar"></div>
+                </div>
                 <div class="stats-display" id="player-stats-display">
                     <span>ATK: <b id="player-stat-atk">?</b></span>
                     <span>DEF: <b id="player-stat-def">?</b></span>
                     <span>CRIT: <b id="player-stat-crit">?</b>%</span>
                 </div>
             </div>
+
             <div class="hud-section monster-info">
                 <h2 id="battle-monster-name">Monstro</h2>
                 <div class="hp-bar-container">
                     <div id="battle-monster-hp-bar" class="hp-bar"></div>
                 </div>
                 <span id="battle-monster-hp-text">?/?</span>
+                <div class="atb-bar-container">
+                    <div id="battle-monster-atb-bar" class="atb-bar"></div>
+                </div>
                 <div class="stats-display" id="monster-stats-display">
                     <span>ATK: <b id="monster-stat-atk">?</b></span>
                     <span>DEF: <b id="monster-stat-def">?</b></span>
@@ -74,16 +117,15 @@
         </div>
 
         <div id="menu-area">
-            <button id="attack-btn" data-action="attack">Atacar</button>
-            <button id="defend-btn" data-action="defend">Defender</button>
-            <button id="potion-btn" data-action="potion">Usar Poção (<span id="potion-count">?</span>)</button>
+            <button id="attack-btn" data-action="attack">Atacar (A)</button>
+            <button id="defend-btn" data-action="defend">Defender (D)</button>
+            <button id="potion-btn" data-action="potion">Usar Poção (<span id="potion-count">?</span>) (Espaço)</button>
         </div>
 
         <div id="game-over-area" style="display: none;">
             <h3 id="game-over-message"></h3>
-            <button id="return-to-menu-btn">Voltar ao Menu</button>
+            <button id="return-to-menu-btn">Voltar ao Ciclo</button>
         </div>
-
     </div>
 
     <div id="map-view" class="view-hidden">
@@ -111,5 +153,4 @@
 
     <script src="script.js"></script>
 </body>
-
 </html>
