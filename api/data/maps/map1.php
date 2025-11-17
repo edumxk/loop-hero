@@ -43,12 +43,12 @@ return [
         '12,1' => [
             'type' => 'monster',
             'difficulty' => 'easy',
-            'monster_id' => 'goblin'
+            'monster_id' => 'orc'
         ],
         '10,4' => [
             'type' => 'monster',
             'difficulty' => 'easy',
-            'monster_id' => 'goblin'
+            'monster_id' => 'troll'
         ],
         '11,5' => [
             'type' => 'trap',

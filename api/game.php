@@ -101,29 +101,13 @@ if ($action === 'move') {
     }
 }
 
-// 4. INICIAR BATALHA (Trigger)
+// 4. INICIAR BATALHA (ATUALIZADO)
 if ($action === 'trigger_battle') {
     try {
-        // Validação de dados recebidos
-        $hero_id = $postData['hero_id'] ?? null;
-        if (!$hero_id) throw new Exception("Hero ID não fornecido.");
+        $player = getPlayerState($pdo, $postData['hero_id']);
+        $monster = spawnMonster($player['level'], $postData['difficulty'] ?? 'easy', $postData['monster_id'] ?? null);
 
-        $difficulty = $postData['difficulty'] ?? 'easy';
-        $monster_id = $postData['monster_id'] ?? null;
-        
-        $player = getPlayerState($pdo, $hero_id);
-        
-        // --- TENTA CRIAR O MONSTRO ---
-        // Usamos 'try/catch' aqui para pegar erros na lógica do monstro
-        try {
-            $monster = spawnMonster($player['level'], $difficulty, $monster_id);
-        } catch (ArgumentCountError $e) {
-            throw new Exception("Erro no código: spawnMonster espera argumentos diferentes. Atualize monster_logic.php");
-        } catch (Exception $e) {
-            throw new Exception("Erro ao criar monstro: " . $e->getMessage());
-        }
-
-        // Garante atributos padrão para o sistema ATB
+        // Garante atributos padrão
         if (!isset($player['base_stats']['speed'])) $player['base_stats']['speed'] = 10;
         if (!isset($monster['stats']['speed'])) $monster['stats']['speed'] = 8;
         if (!isset($monster['stats']['potions'])) $monster['stats']['potions'] = 0;
@@ -131,163 +115,148 @@ if ($action === 'trigger_battle') {
         $_SESSION['battle_state'] = [
             'player' => $player,
             'monster' => $monster,
-            'meters' => ['player' => 0, 'monster' => 0], // ATB começa em 0
+            'meters' => ['player' => 0, 'monster' => 0],
             'game_status' => ['game_over' => false, 'log' => "Um(a) {$monster['name']} apareceu!"],
-            'turn_flags' => ['player_defending' => false, 'player_hit' => false, 'monster_hit' => false]
+            'turn_flags' => ['player_hit' => false, 'monster_hit' => false],
+            
+            // --- MECÂNICA DE DEFESA ---
+            'defense_stacks' => ['player' => 0, 'monster' => 0], // Hits restantes
+            'defense_cooldown' => ['player' => 0, 'monster' => 0] // Turnos para recarregar
         ];
         
-        echo json_encode([
-            'view' => 'battle',
-            'battle_data' => packageStateForFrontend($_SESSION['battle_state'])
-        ]);
-        exit;
-
-    } catch (Throwable $e) { // 'Throwable' pega Erros Fatais e Exceções
-        http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
-        exit;
-    }
+        echo json_encode(['view' => 'battle', 'battle_data' => packageStateForFrontend($_SESSION['battle_state'])]); exit;
+    } catch (Throwable $e) { http_response_code(500); echo json_encode(['error' => $e->getMessage()]); exit; }
 }
 
 // ============================================================================
-// 5. SISTEMA DE BATALHA (ATB)
+// SISTEMA DE BATALHA (ATB)
 // ============================================================================
 
-// Se não houver batalha na sessão, retorna erro (exceto para as ações acima)
-if (!isset($_SESSION['battle_state'])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Nenhuma batalha em andamento.']);
-    exit;
-}
+if (!isset($_SESSION['battle_state'])) { echo json_encode(['error' => 'Nenhuma batalha.']); exit; }
 
 $state = &$_SESSION['battle_state'];
 $player = &$state['player'];
 $monster = &$state['monster'];
 
-// Se o jogo já acabou, retorna o estado final sem processar
 if ($state['game_status']['game_over']) {
-    echo json_encode([
-        'view' => 'battle_over',
-        'battle_data' => packageStateForFrontend($state),
-        'log' => $state['game_status']['log'],
-        'hero_id' => ($player['hp'] > 0 ? $player['hero_id_key'] : null)
-    ]);
-    exit;
+    echo json_encode(['view' => 'battle_over', 'battle_data' => packageStateForFrontend($state), 'log' => $state['game_status']['log'], 'hero_id' => ($player['hp'] > 0 ? $player['hero_id_key'] : null)]); exit;
 }
 
-// --- AÇÃO ESPECIAL: TICK (O Relógio da Batalha) ---
+// --- TICK (MONSTRO) ---
 if ($action === 'tick') {
     $log = [];
     $something_happened = false;
+    $multiplier = (int)($postData['multiplier'] ?? 1);
+    if (!in_array($multiplier, [1, 2, 4, 8])) $multiplier = 1;
 
-    // Limpa flags de animação antigas
     $state['turn_flags']['player_hit'] = false;
     $state['turn_flags']['monster_hit'] = false;
 
-    // 1. Enche as Barras (Soma Velocidade)
-    // Só soma se a barra ainda não estiver cheia (100)
-    if ($state['meters']['player'] < 100) {
-        $state['meters']['player'] += $player['base_stats']['speed'];
-        if ($state['meters']['player'] > 100) $state['meters']['player'] = 100;
-    }
+    // Enche barras
+    if ($state['meters']['player'] < 100) $state['meters']['player'] = min(100, $state['meters']['player'] + ($player['base_stats']['speed'] * $multiplier));
+    if ($state['meters']['monster'] < 100) $state['meters']['monster'] = min(100, $state['meters']['monster'] + ($monster['stats']['speed'] * $multiplier));
 
-    if ($state['meters']['monster'] < 100) {
-        $state['meters']['monster'] += $monster['stats']['speed'];
-        if ($state['meters']['monster'] > 100) $state['meters']['monster'] = 100;
-    }
-
-    // 2. IA DO MONSTRO (Age automaticamente se barra >= 100)
+    // IA DO MONSTRO
     if ($state['meters']['monster'] >= 100) {
         $something_happened = true;
-        $state['meters']['monster'] = 0; // Consome a barra do monstro
+        $state['meters']['monster'] = 0; 
+
+        // Decrementa Cooldown do Monstro se ele agir
+        if ($state['defense_cooldown']['monster'] > 0) {
+            $state['defense_cooldown']['monster']--;
+        }
 
         $monster_hp_percent = ($monster['hp'] / $monster['stats']['max_hp']) * 100;
         
-        // Lógica IA: Se HP < 50% e tem poção -> Usa Poção
-        if ($monster_hp_percent < 50 && $monster['stats']['potions'] > 0) {
+        // 1. USAR DEFESA (HP < 20% e SEM Cooldown)
+        if ($monster_hp_percent < 20 && $state['defense_cooldown']['monster'] == 0) {
+            $state['defense_stacks']['monster'] = 3; // 3 Hits
+            $state['defense_cooldown']['monster'] = 5; // 5 Turnos de espera
+            $log[] = "O {$monster['name']} entrou em DEFESA! (🛡️ Ativado)";
+        }
+        // 2. CURA
+        else if ($monster_hp_percent < 50 && $monster['stats']['potions'] > 0) {
             $monster['stats']['potions']--;
-            $heal = floor($monster['stats']['max_hp'] * 0.3); // Cura 30%
+            $heal = floor($monster['stats']['max_hp'] * 0.3);
             $monster['hp'] = min($monster['stats']['max_hp'], $monster['hp'] + $heal);
-            $log[] = "O {$monster['name']} usou uma poção e recuperou $heal HP!";
+            $log[] = "O {$monster['name']} curou +$heal HP!";
         } 
-        // Lógica IA: Senão -> Ataca
+        // 3. ATAQUE (Consome Stacks do Jogador)
         else {
-            $result = calculateBattleDamage($monster['stats'], $player['combat_stats']);
-            $dmg = $result['damage'];
+            $player_temp_stats = $player['combat_stats'];
             
-            if ($state['turn_flags']['player_defending']) {
-                $dmg = floor($dmg / 2);
-                $log[] = "{$monster['name']} atacou, mas você defendeu! ($dmg dano)";
-                $state['turn_flags']['player_defending'] = false; // Defesa gasta
-            } else {
-                $log[] = "{$monster['name']} atacou! ($dmg dano)";
+            // Verifica se o JOGADOR tem defesa ativa
+            if ($state['defense_stacks']['player'] > 0) {
+                $player_temp_stats['defense'] += 10; // Aplica +10 Def
+                $state['defense_stacks']['player']--; // CONSOME 1 STACK DO JOGADOR
+                // $log[] = "(Sua defesa reduziu o impacto!)";
             }
-            
+
+            $result = calculateBattleDamage($monster['stats'], $player_temp_stats);
+            $dmg = $result['damage'];
             $player['hp'] -= $dmg;
             $state['turn_flags']['player_hit'] = true;
+            $log[] = "{$monster['name']} atacou ($dmg)!";
         }
 
-        // Verifica Morte do Jogador (Permadeath)
         if ($player['hp'] <= 0) {
-            $player['hp'] = 0;
-            $state['game_status']['game_over'] = true;
-            $log[] = "Você foi derrotado! Seu herói caiu.";
-            
-            // Deleta do DB
-            $stmt = $pdo->prepare("DELETE FROM heroes WHERE id = ?");
-            $stmt->execute([$player['id']]);
-            
-            $state['game_status']['log'] = implode(' ', $log);
-            $final_data = packageStateForFrontend($state);
-            unset($_SESSION['battle_state']);
-
-            echo json_encode([
-                'view' => 'battle_over',
-                'log' => implode(' ', $log),
-                'battle_data' => $final_data,
-                'hero_id' => null
-            ]);
-            exit;
+            $player['hp'] = 0; $state['game_status']['game_over'] = true;
+            $log[] = "Derrota! Seu herói caiu.";
+            $stmt = $pdo->prepare("DELETE FROM heroes WHERE id = ?"); $stmt->execute([$player['id']]);
+            $state['game_status']['log'] = implode(' ', $log); unset($_SESSION['battle_state']);
+            echo json_encode(['view' => 'battle_over', 'log' => implode(' ', $log), 'battle_data' => packageStateForFrontend($state), 'hero_id' => null]); exit;
         }
     }
 
-    if ($something_happened) {
-        $state['game_status']['log'] = implode(' ', $log);
-    }
-
-    echo json_encode([
-        'view' => 'battle',
-        'battle_data' => packageStateForFrontend($state)
-    ]);
-    exit;
+    if ($something_happened) $state['game_status']['log'] = implode(' ', $log);
+    echo json_encode(['view' => 'battle', 'battle_data' => packageStateForFrontend($state)]); exit;
 }
 
-// --- AÇÕES DO JOGADOR (Attack, Defend, Potion) ---
+// --- AÇÕES JOGADOR ---
 if ($action === 'attack' || $action === 'defend' || $action === 'potion') {
-    
-    // Validação: Só pode agir se a barra estiver cheia
-    if ($state['meters']['player'] < 100) {
-        echo json_encode(['error' => 'Aguarde sua barra de ação encher!']);
-        exit;
-    }
+    if ($state['meters']['player'] < 100) { echo json_encode(['error' => 'Aguarde!']); exit; }
 
     $log = [];
     $state['turn_flags']['player_hit'] = false;
     $state['turn_flags']['monster_hit'] = false;
 
+    // Decrementa Cooldown do Jogador ao agir (se > 0)
+    if ($state['defense_cooldown']['player'] > 0) {
+        $state['defense_cooldown']['player']--;
+    }
+
     switch ($action) {
         case 'attack':
-            $result = calculateBattleDamage($player['combat_stats'], $monster['stats']);
+            $monster_temp_stats = $monster['stats'];
+            
+            // Verifica se o MONSTRO tem defesa ativa
+            if ($state['defense_stacks']['monster'] > 0) {
+                $monster_temp_stats['defense'] += 10; // Aplica +10 Def
+                $state['defense_stacks']['monster']--; // CONSOME 1 STACK DO MONSTRO
+                $log[] = "[Defesa do Inimigo ativa!]";
+            }
+
+            $result = calculateBattleDamage($player['combat_stats'], $monster_temp_stats);
             $monster['hp'] -= $result['damage'];
             $state['turn_flags']['monster_hit'] = true;
-            $log[] = "Você atacou e " . $result['log'];
-            $state['meters']['player'] = 0; // Zera a barra após agir
+            $log[] = "Você atacou: " . $result['log'];
+            $state['meters']['player'] = 0;
             break;
             
         case 'defend':
-            $state['turn_flags']['player_defending'] = true;
-            $log[] = "Você assumiu postura defensiva.";
-            $state['meters']['player'] = 0; // Zera a barra após agir
+            // Verifica Cooldown antes de permitir
+            if ($state['defense_cooldown']['player'] > 0) {
+                // Como decrementamos acima, somamos 1 de volta para não gastar turno "à toa" se o front falhar
+                // Mas idealmente o botão está desabilitado no front.
+                $state['defense_cooldown']['player']++; 
+                $log[] = "Habilidade em recarga! ({$state['defense_cooldown']['player']} turnos)";
+                // Não zera a barra do jogador, permite tentar outra coisa
+            } else {
+                $state['defense_stacks']['player'] = 3;
+                $state['defense_cooldown']['player'] = 5; // Define 5 turnos de cooldown
+                $log[] = "GUARDA LEVANTADA! (+10 Def por 3 hits)";
+                $state['meters']['player'] = 0; // Zera a barra
+            }
             break;
             
         case 'potion':
@@ -295,106 +264,74 @@ if ($action === 'attack' || $action === 'defend' || $action === 'potion') {
                 $player['potions']--;
                 $heal = floor($player['base_stats']['max_hp'] * 0.4); 
                 $player['hp'] = min($player['base_stats']['max_hp'], $player['hp'] + $heal);
-                $log[] = "Você usou uma poção e curou $heal HP.";
-                $state['meters']['player'] = 0; // Zera a barra após agir
+                $log[] = "Você curou $heal HP.";
+                $state['meters']['player'] = 0;
             } else {
-                $log[] = "Você não tem poções!";
-                // Não zera a barra se falhar o uso
+                $log[] = "Sem poções!";
             }
             break;
     }
 
-    // Verifica Morte do Monstro
+    // Vitória / Morte Monstro
     if ($monster['hp'] <= 0) {
-        $monster['hp'] = 0;
-        $state['game_status']['game_over'] = true;
+        $monster['hp'] = 0; $state['game_status']['game_over'] = true;
+        $exp_gained = $monster['exp_reward']; $player['exp'] += $exp_gained;
+        $gold_gained = $monster['gold_reward']; $player['gold'] += $gold_gained;
+        $final_log = ["Vitória!", "Ganhou $exp_gained EXP e $gold_gained Ouro."];
         
-        $final_log = [];
-        $exp_gained = $monster['exp_reward'];
-        $player['exp'] += $exp_gained;
-        $final_log[] = "Você derrotou o(a) {$monster['name']}!";
-        $final_log[] = "Ganhou $exp_gained EXP.";
-        
-        $gold_gained = $monster['gold_reward'];
-        $player['gold'] += $gold_gained;
-        $final_log[] = "Ganhou $gold_gained de Ouro.";
+        $levelup = checkLevelUp($player); $player = $levelup['player'];
+        if($levelup['log']) $final_log[] = $levelup['log'];
 
-        $levelup_result = checkLevelUp($player);
-        $player = $levelup_result['player'];
-        if (!empty($levelup_result['log'])) {
-            $final_log[] = $levelup_result['log'];
-        }
-
-        // Marca evento do mapa como concluído
-        $map_id = $player['current_map_id'];
-        $event_key = "{$player['current_map_pos_y']},{$player['current_map_pos_x']}";
-        $player['completed_events'][$map_id][$event_key] = true;
-
+        $player['completed_events'][$player['current_map_id']]["{$player['current_map_pos_y']},{$player['current_map_pos_x']}"] = true;
         savePlayerState($pdo, $player);
-        
-        $state['game_status']['log'] = implode(' ', $final_log);
-        $final_data = packageStateForFrontend($state);
-        unset($_SESSION['battle_state']);
-        
-        echo json_encode([
-            'view' => 'battle_over',
-            'log' => implode(' ', $final_log),
-            'battle_data' => $final_data,
-            'hero_id' => $player['hero_id_key']
-        ]);
-        exit;
+
+        $state['game_status']['log'] = implode(' ', $final_log); unset($_SESSION['battle_state']);
+        echo json_encode(['view' => 'battle_over', 'log' => implode(' ', $final_log), 'battle_data' => packageStateForFrontend($state), 'hero_id' => $player['hero_id_key']]); exit;
     }
 
     $state['game_status']['log'] = implode(' ', $log);
-
-    echo json_encode([
-        'view' => 'battle',
-        'battle_data' => packageStateForFrontend($state)
-    ]);
-    exit;
+    echo json_encode(['view' => 'battle', 'battle_data' => packageStateForFrontend($state)]); exit;
 }
 
-// --- FUNÇÃO DE PACOTE PARA O FRONTEND ---
 function packageStateForFrontend($state) {
     $all_heroes = require __DIR__ . '/data/heroes.php';
     $player = $state['player'];
     $monster = $state['monster'];
+    $flat = $state['game_status'];
+    $flat['player_hit'] = $state['turn_flags']['player_hit'];
+    $flat['monster_hit'] = $state['turn_flags']['monster_hit'];
     
-    $flat_state = $state['game_status'];
-    $flat_state['player_hit'] = $state['turn_flags']['player_hit'];
-    $flat_state['monster_hit'] = $state['turn_flags']['monster_hit'];
+    // Dados de Defesa e Cooldown
+    $flat['player_def_stacks'] = $state['defense_stacks']['player'] ?? 0;
+    $flat['monster_def_stacks'] = $state['defense_stacks']['monster'] ?? 0;
+    $flat['player_def_cd'] = $state['defense_cooldown']['player'] ?? 0; // Envia cooldown para o front
     
-    // Envia os medidores ATB
-    $flat_state['player_defending'] = $state['turn_flags']['player_defending'];
-    $flat_state['meters'] = $state['meters'];
-
-    // Dados Player
-    $player_crit = ($player['combat_stats']['crit_chance'] ?? 0) * 100;
-    $flat_state['player_name'] = ($player['class_name'] ?? '?') . " (Lvl " . ($player['level'] ?? '?') . ")";
-    $flat_state['player_hp'] = $player['hp'] ?? 0;
-    $flat_state['player_max_hp'] = $player['base_stats']['max_hp'] ?? 100;
-    $flat_state['player_sprite_folder'] = $all_heroes[$player['hero_id_key']]['sprite_folder'] ?? 'assets/heroes/paladino/';
-    $flat_state['player_hp_percent'] = ($flat_state['player_max_hp'] > 0) ? ($flat_state['player_hp'] / $flat_state['player_max_hp']) * 100 : 0;
-    $flat_state['potions'] = $player['potions'] ?? 0;
-    $flat_state['player_stats'] = [
-        'attack' => $player['combat_stats']['attack'] ?? 0,
-        'defense' => $player['combat_stats']['defense'] ?? 0,
-        'crit_chance' => $player_crit
+    $flat['meters'] = $state['meters'];
+    $flat['player_name'] = ($player['class_name'] ?? '?') . " (Lvl " . ($player['level'] ?? '?') . ")";
+    $flat['player_hp'] = $player['hp'];
+    $flat['player_max_hp'] = $player['base_stats']['max_hp'];
+    $flat['player_hp_percent'] = ($flat['player_max_hp'] > 0) ? ($player['hp'] / $flat['player_max_hp']) * 100 : 0;
+    $flat['player_sprite_folder'] = $all_heroes[$player['hero_id_key']]['sprite_folder'] ?? '';
+    $flat['player_scale'] = $all_heroes[$player['hero_id_key']]['scale'] ?? 1.0;
+    $flat['potions'] = $player['potions'];
+    $flat['player_stats'] = [
+        'attack' => $player['combat_stats']['attack'],
+        'defense' => $player['combat_stats']['defense'],
+        'defense_display' => $player['combat_stats']['defense'] + ($flat['player_def_stacks'] > 0 ? 10 : 0),
+        'crit_chance' => ($player['combat_stats']['crit_chance'] * 100)
     ];
-
-    // Dados Monstro
-    $monster_crit = ($monster['stats']['crit_chance'] ?? 0) * 100;
-    $flat_state['monster_name'] = $monster['name'] ?? "?";
-    $flat_state['monster_hp'] = $monster['hp'] ?? 0;
-    $flat_state['monster_max_hp'] = $monster['stats']['max_hp'] ?? 100;
-    $flat_state['monster_sprite_folder'] = $monster['sprite_folder'] ?? 'assets/monsters/goblin/';
-    $flat_state['monster_hp_percent'] = ($flat_state['monster_max_hp'] > 0) ? ($flat_state['monster_hp'] / $flat_state['monster_max_hp']) * 100 : 0;
-    $flat_state['monster_stats'] = [
-        'attack' => $monster['stats']['attack'] ?? 0,
-        'defense' => $monster['stats']['defense'] ?? 0,
-        'crit_chance' => $monster_crit
+    $flat['monster_name'] = $monster['name'];
+    $flat['monster_hp'] = $monster['hp'];
+    $flat['monster_max_hp'] = $monster['stats']['max_hp'];
+    $flat['monster_hp_percent'] = ($flat['monster_max_hp'] > 0) ? ($monster['hp'] / $flat['monster_max_hp']) * 100 : 0;
+    $flat['monster_sprite_folder'] = $monster['sprite_folder'];
+    $flat['monster_scale'] = $monster['scale'] ?? 1.0;
+    $flat['monster_stats'] = [
+        'attack' => $monster['stats']['attack'],
+        'defense' => $monster['stats']['defense'],
+        'defense_display' => $monster['stats']['defense'] + ($flat['monster_def_stacks'] > 0 ? 10 : 0),
+        'crit_chance' => ($monster['stats']['crit_chance'] * 100)
     ];
-    
-    return $flat_state;
+    return $flat;
 }
 ?>
