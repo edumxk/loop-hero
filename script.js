@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isProcessingAction = false; 
     let battleInterval = null;
     let gameSpeed = 1; // <--- NOVO: Velocidade padrão
+    let prologueTimer = null; // <--- NOVO: Para controlar o tempo do texto
     
     let currentHeroFolder = ''; 
     let currentMonsterFolder = '';
@@ -24,11 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Seletores do Menu ---
     const btnNewGame = document.getElementById('btn-new-game');
     const savedGamesList = document.getElementById('saved-games-list'); // <--- NOVO
+    const startScreen = document.getElementById('start-screen'); // <--- NOVO
 
     //const btnContinueGame = document.getElementById('btn-continue-game');
     const btnEndPrologue = document.getElementById('btn-end-prologue');
+    const btnSkipPrologue = document.getElementById('btn-skip-prologue'); // <--- NOVO
     const btnBackTitle = document.getElementById('btn-back-title');
     const heroCards = document.querySelectorAll('.hero-card');
+    const prologueAudio = document.getElementById('prologue-audio');
+    const menuAudio = document.getElementById('menu-audio');
     
     // --- Seletores Batalha e Mapa ---
     const returnToMenuBtn = document.getElementById('return-to-menu-btn');
@@ -74,7 +79,54 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. LÓGICA DE MENU E NAVEGAÇÃO
     // ===================================================================
 
-    checkSaves();
+    //checkSaves();
+    
+
+    showView('start-screen');
+
+    function initGameAudio() {
+        // 1. Toca a música do menu
+        if (menuAudio) {
+            menuAudio.volume = 0.4; // Volume agradável
+            menuAudio.play().catch(e => console.log("Áudio bloqueado:", e));
+        }
+
+        // 2. Remove listener para não disparar dnv
+        document.removeEventListener('click', initGameAudio);
+        document.removeEventListener('keydown', initGameAudio);
+
+        // 3. Carrega os saves e vai para o menu real
+        checkSaves(); 
+        hideStartScreenWithFade();
+    }
+
+    // Adiciona listeners globais para o primeiro clique/tecla
+    // Usamos 'startScreen' click ou document keydown
+    startScreen.addEventListener('click', initGameAudio);
+    document.addEventListener('keydown', (e) => {
+        // Só ativa se a tela de start estiver visível
+        if (!startScreen.classList.contains('view-hidden')) {
+            initGameAudio();
+        }
+    });
+
+    function hideStartScreenWithFade() {
+        const startScreen = document.getElementById('start-screen');
+        
+        // 1. Impede novos cliques durante a animação
+        startScreen.style.pointerEvents = 'none'; 
+        
+        // 2. Inicia o Fade (CSS cuida da animação de 2s)
+        startScreen.style.opacity = '0';
+
+        // 3. Espera 2 segundos (2000ms) para remover do fluxo da página
+        setTimeout(() => {
+            startScreen.classList.add('view-hidden');
+            
+            // Chama a função de carregar saves (mostra o menu) APÓS o fade
+            checkSaves(); 
+        }, 2000);
+    }
 
     async function checkSaves() {
         showView('title-screen');
@@ -115,6 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { 
             console.error("Erro ao checar saves", e); 
         }
+        menuAudio.play().catch(e => console.warn("Áudio do menu bloqueado pelo navegador", e));
+    }
+
+    function stopPrologueAudio() {
+        if (prologueAudio) {
+            prologueAudio.pause();
+            prologueAudio.currentTime = 0; // Reseta para o início
+        }
     }
 
     function showView(viewId) {
@@ -124,13 +184,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Navegação
-    btnNewGame.addEventListener('click', () => showView('prologue-view'));
     btnEndPrologue.addEventListener('click', () => showView('hero-selection-view'));
+    btnSkipPrologue.addEventListener('click', () => {
+        // 1. Cancela o timer natural (já que vamos pular)
+        if (prologueTimer) clearTimeout(prologueTimer);
+        stopPrologueAudio();
+        // 2. Força todo o texto a aparecer imediatamente
+        const storyContainer = document.querySelector('.story-container');
+        storyContainer.classList.add('fast-forward');
+
+        // 3. Troca os botões
+        btnSkipPrologue.style.display = 'none'; // Esconde botão de pular
+        
+        const btnEnd = document.getElementById('btn-end-prologue');
+        btnEnd.style.display = 'inline-block'; // Torna visível e clicável
+        btnEnd.style.opacity = '1'; // Garante opacidade total
+        btnEnd.style.animation = 'none'; // Remove animação lenta para aparecer na hora
+    });
+
     btnBackTitle.addEventListener('click', () => showView('title-screen'));
 
     returnToMenuBtn.addEventListener('click', () => {
         if (currentPlayerId) sendAction('load_game', { hero_id: currentPlayerId });
         else checkSaves();
+    });
+
+    btnNewGame.addEventListener('click', () => {
+        showView('prologue-view');
+        
+        // --- NOVO: TOCA O ÁUDIO ---
+        if (prologueAudio) {
+            prologueAudio.volume = 1; 
+            prologueAudio.play().catch(e => console.warn("Áudio bloqueado pelo navegador", e));
+        }
+        // --------------------------
+        // 1. Reseta o estado visual do prólogo
+        const storyContainer = document.querySelector('.story-container');
+        storyContainer.classList.remove('fast-forward');
+        
+        // 2. Botões: Mostra o Skip, Esconde o Final
+        btnSkipPrologue.style.display = 'block';
+        const btnEnd = document.getElementById('btn-end-prologue');
+        btnEnd.style.display = 'none'; // Garante que não dá pra clicar
+        btnEnd.classList.remove('fade-in-btn');
+        btnEnd.style.opacity = '0'; 
+
+        // 3. Inicia o Timer Natural (11 segundos = tempo das animações CSS)
+        if (prologueTimer) clearTimeout(prologueTimer);
+        
+        prologueTimer = setTimeout(() => {
+            // Se o usuário esperou tudo:
+            btnSkipPrologue.style.display = 'none'; // Esconde o Skip
+            btnEnd.classList.add('fade-in-btn');    // Mostra o Final suavemente
+        }, 22000); // 11s é a soma dos delays do CSS
     });
 
     // Cards de Herói

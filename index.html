@@ -9,13 +9,20 @@
 </head>
 
 <body>
-
     <div id="loading-overlay" class="view-hidden">
         <div class="loading-content">
             <h2 class="loading-text">Uma Batalha Sangrenta se Inicia...</h2>
             <div class="loading-spinner"></div>
         </div>
     </div>
+    <div id="start-screen">
+            <h1 class="game-title">Loop Hero</h1>
+            <p class="press-start">Clique para Iniciar</p>
+            <small class="version">v1.3</small>
+        </div>
+    <audio id="menu-audio" preload="auto">
+            <source src="assets/sounds/prologo/menu.mp3" type="audio/mpeg">
+        </audio>
 
     <div id="title-screen" class="view-hidden">
         <h1 class="game-title">A Floresta Eterna</h1>
@@ -30,6 +37,10 @@
     </div>
 
     <div id="prologue-view" class="view-hidden">
+        <button id="btn-skip-prologue" class="skip-btn">Pular Intro >></button>
+        <audio id="prologue-audio" preload="auto">
+            <source src="assets/sounds/prologo/prologo.mp3" type="audio/mpeg">
+        </audio>
         <div class="story-container">
             <p>A Floresta dos Ecos é uma cicatriz no tempo.</p>
             <p>Monstros nascem da própria escuridão, ficando mais fortes a cada nascer do sol.</p>
@@ -134,25 +145,46 @@
     </div>
 
     <div id="map-view" class="view-hidden">
-        <h2 id="map-name">Carregando Mapa...</h2>
-        <div id="map-hud">
-            <span>❤️ HP: <b id="map-hud-hp">? / ?</b></span>
-            <span>💰 Ouro: <b id="map-hud-gold">?</b></span>
-            <span>🧪 Poções: <b id="map-hud-potions">?</b></span>
-        </div>
-        <div id="map-grid-container">
-            <div id="map-grid"></div>
-        </div>
-        <div id="map-log-area">
-            <p id="map-log">Use as setas para mover.</p>
-        </div>
-        <div id="map-controls">
-            <button class="move-btn" data-direction="up">▲</button>
-            <div class="move-lr">
-                <button class="move-btn" data-direction="left">◄</button>
-                <button class="move-btn" data-direction="right">►</button>
+        
+        <div class="desktop-layout">
+            
+            <div class="panel left-panel">
+                <h2 id="map-name">Carregando...</h2>
+                
+                <div id="map-hud" class="info-box">
+                    <div class="hud-row">❤️ HP: <b id="map-hud-hp">?/?</b></div>
+                    <div class="hud-row">💰 Ouro: <b id="map-hud-gold">?</b></div>
+                    <div class="hud-row">🧪 Poções: <b id="map-hud-potions">?</b></div>
+                </div>
+
+                <div id="map-log-area" class="info-box">
+                    <p id="map-log">Bem-vindo à floresta.</p>
+                </div>
             </div>
-            <button class="move-btn" data-direction="down">▼</button>
+
+            <div class="panel center-panel">
+                <div id="map-grid-container">
+                    <div id="map-grid"></div>
+                </div>
+            </div>
+
+            <div class="panel right-panel">
+                <button id="btn-open-char" class="action-btn big-btn">👤 Personagem</button>
+                
+                <div id="map-controls">
+                    <div class="control-row">
+                        <button class="move-btn" data-direction="up">▲</button>
+                    </div>
+                    <div class="control-row">
+                        <button class="move-btn" data-direction="left">◄</button>
+                        <button class="move-btn" data-direction="down">▼</button>
+                        <button class="move-btn" data-direction="right">►</button>
+                    </div>
+                </div>
+                
+                <small style="color: #666; margin-top: 10px;">Use W, A, S, D</small>
+            </div>
+
         </div>
     </div>
 

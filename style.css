@@ -15,6 +15,147 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     width: 100%; height: 100vh;
 }
+/* --- TELA DO MAPA (DESKTOP LAYOUT) --- */
+#map-view {
+    width: 100vw;
+    height: 100vh;
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Sem barra de rolagem */
+}
+
+.desktop-layout {
+    display: flex;
+    width: 95%;
+    max-width: 1400px; /* Limite máximo de largura */
+    height: 90%;
+    gap: 20px;
+    background-color: #1a1a1a;
+    border: 2px solid #444;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
+
+/* Painéis (Colunas) */
+.panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.left-panel { flex: 1; align-items: stretch; gap: 20px; }
+.center-panel { flex: 2; background-color: #000; border: 1px solid #333; position: relative; overflow: hidden; }
+.right-panel { flex: 1; gap: 40px; }
+
+/* Caixas de Info (Esquerda) */
+.info-box {
+    background-color: #252525;
+    padding: 15px;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #ccc;
+}
+.hud-row { margin-bottom: 10px; font-size: 1.2em; display: flex; justify-content: space-between; }
+.hud-row b { color: #fff; }
+
+#map-log-area {
+    height: 150px;
+    overflow-y: auto;
+    font-style: italic;
+    font-size: 0.9em;
+    color: #aaa;
+}
+
+/* O Grid (Centro) */
+#map-grid-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Permite rolar se o mapa for GIGANTE */
+}
+
+#map-grid {
+    display: grid;
+    /* O JS define as colunas */
+    background-color: #111;
+    border: 2px solid #666;
+    position: relative; /* Importante para o Avatar */
+}
+
+/* Células */
+.map-cell {
+    width: 50px;  /* Tamanho fixo e maior para Desktop */
+    height: 50px;
+    background-color: #222;
+    border: 1px solid #2a2a2a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+.map-cell.path { background-color: #444; }
+.map-cell.start { background-color: #27ae60; }
+.map-cell.end { background-color: #c0392b; }
+.map-cell.event::after { content: '?'; font-size: 1.5em; color: #f1c40f; }
+.map-cell.monster-event::after { content: '⚔️'; font-size: 1.2em; }
+.map-cell.completed::after { content: '✔️'; color: #27ae60; }
+
+/* Avatar */
+#player-avatar {
+    position: absolute;
+    width: 40px; /* Pouco menor que a célula */
+    height: 40px;
+    background-color: #3498db;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    z-index: 10;
+    transition: all 0.2s ease-in-out;
+    margin: 5px; /* (50 - 40) / 2 para centralizar */
+    pointer-events: none;
+    box-shadow: 0 0 10px #3498db;
+}
+
+/* Controles (Direita) */
+#map-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+.control-row { display: flex; gap: 5px; }
+
+.move-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 2em;
+    background-color: #333;
+    border: 2px solid #555;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.1s;
+    border-radius: 8px;
+}
+.move-btn:hover { background-color: #444; border-color: #e67e22; color: #e67e22; }
+.move-btn:active { transform: scale(0.95); background-color: #e67e22; color: #000; }
+
+.big-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    background-color: #e67e22;
+    color: #000;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+.big-btn:hover { background-color: #d35400; }
 
 /* --- 5. Seleção de Herói (Cards) --- */
 #hero-selection-grid {
@@ -113,21 +254,74 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 #prologue-view { background-color: #000; padding: 40px; text-align: center; }
 .story-container { max-width: 600px; margin-bottom: 40px; line-height: 1.8; }
 .story-container p { font-size: 1.2em; margin-bottom: 15px; opacity: 0; animation: fadeIn 2s forwards; }
-.story-container p:nth-child(1) { animation-delay: 0.5s; }
-.story-container p:nth-child(2) { animation-delay: 2.5s; }
-.story-container p:nth-child(3) { animation-delay: 4.5s; }
-.story-container p:nth-child(4) { animation-delay: 6.5s; }
-.story-container p:nth-child(5) { animation-delay: 8.5s; }
-.story-container p:nth-child(6) { animation-delay: 10s; }
+.story-container p:nth-child(1) { animation-delay: 0.3s; }
+.story-container p:nth-child(2) { animation-delay: 3s; }
+.story-container p:nth-child(3) { animation-delay: 8.5s; }
+.story-container p:nth-child(4) { animation-delay: 12.5s; }
+.story-container p:nth-child(5) { animation-delay: 16.5s; }
+.story-container p:nth-child(6) { animation-delay: 20s; }
+.story-container p:nth-child(7) { animation-delay: 21s; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 #btn-end-prologue {
     padding: 15px 30px; background: #333; border: 1px solid #666; color: #fff;
-    cursor: pointer; font-size: 1.2em; opacity: 0; animation: fadeIn 2s forwards 11s;
+    cursor: pointer; font-size: 1.2em; opacity: 0; animation: fadeIn 2s forwards 2s;
 }
 #btn-end-prologue:hover { background: #555; }
+/* Botão de Skip (Pular Intro) */
+.skip-btn {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: transparent;
+    border: 1px solid #444;
+    color: #666;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: inherit;
+    text-transform: uppercase;
+    font-size: 0.9em;
+    transition: all 0.3s;
+    z-index: 5; /* Acima do texto */
+}
 
+.skip-btn:hover {
+    color: #e67e22;
+    border-color: #e67e22;
+    background-color: rgba(230, 126, 34, 0.1);
+}
+
+/* --- Ajustes no Prólogo --- */
+
+/* Classe para mostrar texto imediatamente quando pular */
+.story-container.fast-forward p {
+    animation: none !important;
+    opacity: 1 !important;
+}
+
+/* O botão final começa ESCONDIDO (não ocupa espaço, não clica) */
+#btn-end-prologue {
+    display: none; /* Isso previne o clique acidental */
+    padding: 15px 30px; 
+    background: #333; 
+    border: 1px solid #666; 
+    color: #fff;
+    cursor: pointer; 
+    font-size: 1.2em; 
+    /* A animação será aplicada via JS ou classe quando aparecer */
+    margin-top: 20px;
+}
+
+#btn-end-prologue:hover { 
+    background: #555; 
+}
+
+/* Classe para fazer o botão aparecer suavemente (se esperar o tempo) */
+.fade-in-btn {
+    display: inline-block !important;
+    animation: fadeIn 2s forwards;
+}
 /* --- 5. Seleção de Herói --- */
 #hero-selection-grid { display: flex; gap: 40px; margin-bottom: 30px; }
 .hero-card {
@@ -425,3 +619,15 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
     border-color: #e67e22;
     box-shadow: 0 0 5px rgba(230, 126, 34, 0.5);
 }
+
+/* --- 3. TELA DE START --- */
+#start-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #000; z-index: 500;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+}
+.press-start { font-size: 1.5rem; margin-top: 20px; animation: blink 1s infinite; text-transform: uppercase; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
