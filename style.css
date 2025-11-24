@@ -21,21 +21,32 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
     width: 100%; height: 100vh;
 }
 #game-view {
-    /* O Palco 720p */
+    /* Define o container como referência para tudo que está dentro (absolute) */
     position: relative;
-    width: 1280px;  /* Largura 720p */
-    height: 720px; /* Altura 720p */
     
-    /* Estilo da "Janela" do jogo */
-    background-color: #111;
-    border: 4px solid #333;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
-    overflow: hidden; /* Nada sai de dentro desse quadrado */
+    /* Tamanho FIXO: Nem mais, nem menos */
+    width: 1280px;
+    height: 720px;
     
-    /* Organização interna da Interface */
-    display: flex; 
+    /* Garante que o container não encolha se a tela for pequena */
+    min-width: 1280px;
+    min-height: 720px;
+    
+    /* Estética da Moldura */
+    background-color: #000; /* Fundo preto de segurança */
+    border: 4px solid #333; /* Borda cinza escura */
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.9); /* Sombra para destacar do fundo do site */
+    
+    /* O SEGREDO: Corta tudo que tentar sair desse quadrado */
+    overflow: hidden; 
+    
+    /* Centralização Extra (caso o flex do body falhe em algum momento) */
+    margin: auto;
+    
+    /* Mantém o flex para centralizar telas de loading/vitoria se houver dentro */
+    display: flex;
     flex-direction: column;
-    justify-content: space-between; /* HUD no topo, Menu em baixo */
+    justify-content: space-between; 
 }
 /* --- TELA DO MAPA (DESKTOP LAYOUT) --- */
 #map-view {
@@ -367,13 +378,23 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
     position: absolute;
     top: 0; 
     left: 0;
-    width: 100%;
-    height: 100%;
+    
+    /* FIXANDO O TAMANHO EM 720p (HD Padrão) */
+    width: 1280px;
+    height: 720px;
+    
+    /* Garantia extra: nunca ficar menor que isso */
+    min-width: 1280px;
+    min-height: 720px;
+    
     z-index: 0;
-    /* Imagem de fundo ajustada para cobrir o 720p */
-    background-size: cover; 
-    background-position: center; 
-    filter: brightness(0.6); /* Escurece um pouco para destacar a UI */
+    
+    /* Comportamento da Imagem */
+    background-size: cover; /* Cobre todo o espaço de 1280x720 */
+    background-position: center bottom; /* Mantém o foco no chão */
+    background-repeat: no-repeat;
+    
+    filter: brightness(0.6); /* Escurece para o HUD brilhar */
 }
 #battle-arena {
     position: absolute;
@@ -387,11 +408,19 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 .sprite {
     position: relative; width: 300px; height: 300px; image-rendering: pixelated;
 }
+/* Adicione isso para garantir que a escala não borre a imagem */
 .sprite img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); /* Sombra no pé */
+    object-fit: contain; /* Garante que a imagem não distorça/estique errado */
+    
+    /* Mágica para Pixel Art: */
+    image-rendering: pixelated;      /* Padrão moderno */
+    image-rendering: -moz-crisp-edges; /* Firefox */
+    image-rendering: crisp-edges;
+    
+    /* Mantém a sombra no pé */
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); 
 }
 .sprite img.active { display: block; }
 /* #monster-sprite { transform: scaleX(-1); } */
@@ -399,7 +428,7 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 #player-sprite {
     position: absolute;
     bottom: 160px; /* Altura do chão em relação à base 720p */
-    left: 150px;   /* Distância da esquerda */
+    left: 280px;   /* Distância da esquerda */
     width: 300px;
     height: 300px;
 }
@@ -407,7 +436,7 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 #monster-sprite {
     position: absolute;
     bottom: 160px; /* Mesma linha do chão */
-    right: 150px;  /* Distância da direita */
+    right: 220px;  /* Distância da direita */
     width: 300px;
     height: 300px;
     /* Se precisar espelhar o monstro: transform: scaleX(-1); */
