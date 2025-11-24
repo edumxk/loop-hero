@@ -10,15 +10,21 @@ return [
         'scale' => 1.0,
         'base_stats' => [ // Atributos puros
             'max_hp'   => 120,
-            'strength' => 5,
-            'luck'     => 3,
-            'speed' => 12,
+            'strength' => 1,
+            'luck'     => 1,
+            'agility' => 1,
+            'speed' => 10,
         ],
         'combat_stats_base' => [ // Stats de combate (antes de 'strength' e 'luck')
-            'attack'      => 1,
+            'attack'      => 5,
             'defense'     => 2,
             'crit_chance' => 0.05,
             'crit_mult'   => 1.5
+        ],
+        'growth' => [
+            'attack' => 2,  // Ganha 1.5 atk por nível
+            'defense' => 2, // Ganha 1 def por nível
+            'max_hp' => 15    // Usado se quiser calcular HP dinâmico
         ],
         'starting_equipment' => [
             'weapon1' => 'sword', // ID do item (futuro)
@@ -31,15 +37,21 @@ return [
         'scale' => 0.80,
         'base_stats' => [
             'max_hp'   => 140,
-            'strength' => 10,
-            'luck'     => 2,
+            'strength' => 1,
+            'luck'     => 1,
+            'agility' => 1,
             'speed' => 10,
         ],
         'combat_stats_base' => [
-            'attack'      => 2,
-            'defense'     => 1,
+            'attack'      => 5,
+            'defense'     => 2,
             'crit_chance' => 0.03,
-            'crit_mult'   => 1.75 // Mais dano crítico
+            'crit_mult'   => 2 // Mais dano crítico
+        ],
+        'growth' => [
+            'attack' => 3,  // Ganha muito ataque por nível
+            'defense' => 1, // Ganha pouca defesa
+            'max_hp' => 10
         ],
         'starting_equipment' => [
             'weapon1' => 'greataxe',

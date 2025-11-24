@@ -17,11 +17,11 @@ function calculateBattleDamage($attacker_stats, $defender_stats) {
     // ============================================================
     
     // Cada ponto de defesa = 3% (0.03)
-    $reduction_percent = $def * 0.03;
+    $reduction_percent = $def * 0.02;
     
     // Teto máximo de 75% (0.75)
-    if ($reduction_percent > 0.75) {
-        $reduction_percent = 0.75;
+    if ($reduction_percent > 0.85) {
+        $reduction_percent = 0.85;
     }
     
     // Calcula o dano base reduzido

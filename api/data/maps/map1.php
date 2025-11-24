@@ -43,12 +43,12 @@ return [
         '12,1' => [
             'type' => 'monster',
             'difficulty' => 'easy',
-            'monster_id' => 'orc'
+            'monster_id' => 'goblin'
         ],
         '10,4' => [
             'type' => 'monster',
             'difficulty' => 'easy',
-            'monster_id' => 'troll'
+            'monster_id' => 'goblin'
         ],
         '11,5' => [
             'type' => 'trap',
@@ -57,16 +57,16 @@ return [
         '13,5' => [
             'type' => 'treasure',
             'treasure_type' => 'potion',
-            'value' => 1
+            'value' => 2
         ],
          '9,0' => [
             'type' => 'treasure',
             'treasure_type' => 'potion',
-            'value' => 1
+            'value' => 5
         ],
         '5,1' => [
             'type' => 'monster',
-            'difficulty' => 'easy',
+            'difficulty' => 'medium',
             'monster_id' => 'goblin'
         ],
         '8,0' => [
@@ -96,7 +96,7 @@ return [
         ],
         '5,5' => [
             'type' => 'monster',
-            'difficulty' => 'easy',
+            'difficulty' => 'hard',
             'monster_id' => 'goblin'
         ],
         '3,0' => [
@@ -111,17 +111,17 @@ return [
         ], // Centro
         '3,6' => [
             'type' => 'monster',
-            'difficulty' => 'medium',
+            'difficulty' => 'hard',
             'monster_id' => 'goblin'
         ],
         '1,2' => [
             'type' => 'monster',
-            'difficulty' => 'easy',
+            'difficulty' => 'hard',
             'monster_id' => 'goblin'
         ],
         '1,5' => [
             'type' => 'monster',
-            'difficulty' => 'easy',
+            'difficulty' => 'medium',
             'monster_id' => 'orc'
         ],
         '0,3' => [
@@ -140,7 +140,7 @@ return [
         ],
         '0,6' => [
             'type' => 'monster',
-            'difficulty' => 'easy',
+            'difficulty' => 'hard',
             'monster_id' => 'orc'
         ],
     ]

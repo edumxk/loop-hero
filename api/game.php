@@ -129,6 +129,68 @@ if ($action === 'trigger_battle') {
 }
 
 // ============================================================================
+// 6. SISTEMA DE EVOLUÇÃO (DISTRIBUIÇÃO DE PONTOS)
+// ============================================================================
+
+if ($action === 'distribute_point') {
+    try {
+        $hero_id = $postData['hero_id'] ?? null;
+        $attribute = $postData['attribute'] ?? null; // 'strength', 'agility', 'luck', 'vitality'
+        
+        if (!$hero_id || !$attribute) throw new Exception("Dados inválidos.");
+
+        $player = getPlayerState($pdo, $hero_id);
+
+        // 1. Validação
+        if ($player['attribute_points'] <= 0) {
+            echo json_encode(['error' => 'Sem pontos de atributo disponíveis!']);
+            exit;
+        }
+
+        // 2. Aplicação do Ponto
+        switch ($attribute) {
+            case 'strength':
+                $player['base_stats']['strength']++;
+                break;
+            case 'agility': // No DB usamos 'speed' como base para agilidade
+                $player['base_stats']['agility']++;
+                break;
+            case 'luck':
+                $player['base_stats']['luck']++;
+                break;
+            case 'vitality':
+                $player['base_stats']['max_hp'] += 25; // 1 Vit = 10 HP Base
+                $player['hp'] += 25; // Cura o valor ganho
+                break;
+            default:
+                throw new Exception("Atributo desconhecido: $attribute");
+        }
+
+        // 3. Consome o ponto
+        $player['attribute_points']--;
+
+        // 4. RECALCULA STATUS DE COMBATE (Ataque, Defesa, Crit)
+        // Essa função (definida em player_logic.php) atualiza 'combat_stats' baseado nos novos 'base_stats'
+        $player = recalculate_player_stats($player);
+
+        // 5. Salva e Retorna
+        savePlayerState($pdo, $player);
+
+        echo json_encode([
+            'view' => 'character_update', // Tag para o JS saber que é só update de modal
+            'player' => $player,
+            'log' => "Atributo $attribute melhorado!"
+        ]);
+        exit;
+
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+        exit;
+    }
+}
+
+// ============================================================================
 // SISTEMA DE BATALHA (ATB)
 // ============================================================================
 
@@ -334,4 +396,6 @@ function packageStateForFrontend($state) {
     ];
     return $flat;
 }
+
+
 ?>

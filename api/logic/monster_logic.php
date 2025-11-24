@@ -68,7 +68,7 @@ function spawnMonster($player_level, $difficulty = 'easy', $monster_id = null) {
     $base_gold = $template['base_gold'] ?? 5;
     
     // XP escala progressivamente com o nível
-    $exp_reward = floor($base_exp + ($level_gap * $base_exp * 0.5));
+    $exp_reward = floor($base_exp + ($level_gap * $base_exp * 0.25));
     $gold_reward = floor($base_gold + ($level_gap * 2));
 
     return [

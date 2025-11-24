@@ -6,21 +6,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroSelectionView = document.getElementById('hero-selection-view');
     const gameView = document.getElementById('game-view');
     const mapView = document.getElementById('map-view');
-    const loadingOverlay = document.getElementById('loading-overlay'); 
+    const loadingOverlay = document.getElementById('loading-overlay');
 
     // --- Variáveis de Estado ---
     let currentPlayerId = null;
-    let isProcessingAction = false; 
+    let isProcessingAction = false;
     let battleInterval = null;
     let gameSpeed = 1; // <--- NOVO: Velocidade padrão
     let prologueTimer = null; // <--- NOVO: Para controlar o tempo do texto
-    
-    let currentHeroFolder = ''; 
+
+    let currentHeroFolder = '';
     let currentMonsterFolder = '';
-    let isPlayerAnimationPlaying = false; 
+    let isPlayerAnimationPlaying = false;
     let isMonsterAnimationPlaying = false;
-    
+    let playerDataCache = null; // Para armazenar dados do jogador
+    let lastPlayerHp = null;
+    let lastMonsterHp = null;
+
     const actionsList = ['idle', 'attack', 'defence', 'cure', 'hit', 'dead'];
+
 
     // --- Seletores do Menu ---
     const btnNewGame = document.getElementById('btn-new-game');
@@ -34,20 +38,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroCards = document.querySelectorAll('.hero-card');
     const prologueAudio = document.getElementById('prologue-audio');
     const menuAudio = document.getElementById('menu-audio');
-    
+
     // --- Seletores Batalha e Mapa ---
     const returnToMenuBtn = document.getElementById('return-to-menu-btn');
     const menuArea = document.getElementById('menu-area');
     const gameOverArea = document.getElementById('game-over-area');
     const gameOverMessage = document.getElementById('game-over-message');
-    
+
     // Botões de Ação (Corrigidos)
     const attackBtn = document.getElementById('attack-btn');
     const defendBtn = document.getElementById('defend-btn');
     const potionBtn = document.getElementById('potion-btn');
     const battleButtons = document.querySelectorAll('#menu-area button');
     const speedButtons = document.querySelectorAll('.speed-btn'); // <--- NOVO
-    
+
     const battlePlayerName = document.getElementById('battle-player-name');
     const battlePlayerHpBar = document.getElementById('battle-player-hp-bar');
     const battlePlayerHpText = document.getElementById('battle-player-hp-text');
@@ -56,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const battleMonsterHpText = document.getElementById('battle-monster-hp-text');
     const potionCountEl = document.getElementById('potion-count');
     const gameLogEl = document.getElementById('game-log');
-    
+
     const battlePlayerAtbBar = document.getElementById('battle-player-atb-bar');
     const battleMonsterAtbBar = document.getElementById('battle-monster-atb-bar');
 
@@ -80,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================
 
     //checkSaves();
-    
+
 
     showView('start-screen');
 
@@ -96,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('keydown', initGameAudio);
 
         // 3. Carrega os saves e vai para o menu real
-        checkSaves(); 
+        checkSaves();
         hideStartScreenWithFade();
     }
 
@@ -112,19 +116,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideStartScreenWithFade() {
         const startScreen = document.getElementById('start-screen');
-        
+
         // 1. Impede novos cliques durante a animação
-        startScreen.style.pointerEvents = 'none'; 
-        
+        startScreen.style.pointerEvents = 'none';
+
         // 2. Inicia o Fade (CSS cuida da animação de 2s)
         startScreen.style.opacity = '0';
 
         // 3. Espera 2 segundos (2000ms) para remover do fluxo da página
         setTimeout(() => {
             startScreen.classList.add('view-hidden');
-            
+
             // Chama a função de carregar saves (mostra o menu) APÓS o fade
-            checkSaves(); 
         }, 2000);
     }
 
@@ -134,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('api/game.php?action=check_saves');
             if (response.ok) {
                 const saves = await response.json();
-                
+
                 // Limpa a lista atual
                 savedGamesList.innerHTML = '';
 
@@ -143,13 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     saves.forEach(save => {
                         const btn = document.createElement('button');
                         btn.className = 'saved-game-btn'; // Usa a nova classe CSS menor
-                        
+
                         // Formatação do texto: "Nome do Herói      Lvl X"
                         btn.innerHTML = `
                             <span>${save.class_name}</span>
                             <small>Lvl ${save.level}</small>
                         `;
-                        
+
                         // Adiciona o evento de clique para carregar este herói específico
                         btn.addEventListener('click', () => {
                             sendAction('load_game', { hero_id: save.hero_id_key });
@@ -157,15 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         savedGamesList.appendChild(btn);
                     });
-                    
+
                     // Adiciona um título ou separador visual se quiser (opcional)
                     savedGamesList.style.display = 'flex';
                 } else {
                     savedGamesList.style.display = 'none';
                 }
             }
-        } catch (e) { 
-            console.error("Erro ao checar saves", e); 
+        } catch (e) {
+            console.error("Erro ao checar saves", e);
         }
         menuAudio.play().catch(e => console.warn("Áudio do menu bloqueado pelo navegador", e));
     }
@@ -195,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 3. Troca os botões
         btnSkipPrologue.style.display = 'none'; // Esconde botão de pular
-        
+
         const btnEnd = document.getElementById('btn-end-prologue');
         btnEnd.style.display = 'inline-block'; // Torna visível e clicável
         btnEnd.style.opacity = '1'; // Garante opacidade total
@@ -211,27 +214,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnNewGame.addEventListener('click', () => {
         showView('prologue-view');
-        
+
         // --- NOVO: TOCA O ÁUDIO ---
         if (prologueAudio) {
-            prologueAudio.volume = 1; 
+            prologueAudio.volume = 1;
             prologueAudio.play().catch(e => console.warn("Áudio bloqueado pelo navegador", e));
         }
         // --------------------------
         // 1. Reseta o estado visual do prólogo
         const storyContainer = document.querySelector('.story-container');
         storyContainer.classList.remove('fast-forward');
-        
+
         // 2. Botões: Mostra o Skip, Esconde o Final
         btnSkipPrologue.style.display = 'block';
         const btnEnd = document.getElementById('btn-end-prologue');
         btnEnd.style.display = 'none'; // Garante que não dá pra clicar
         btnEnd.classList.remove('fade-in-btn');
-        btnEnd.style.opacity = '0'; 
+        btnEnd.style.opacity = '0';
 
         // 3. Inicia o Timer Natural (11 segundos = tempo das animações CSS)
         if (prologueTimer) clearTimeout(prologueTimer);
-        
+
         prologueTimer = setTimeout(() => {
             // Se o usuário esperou tudo:
             btnSkipPrologue.style.display = 'none'; // Esconde o Skip
@@ -261,13 +264,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================
     // 2. LÓGICA DE SPRITES (BATALHA)
     // ===================================================================
-    
+    function preloadImage(url) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => resolve(url);
+            img.onerror = () => {
+                console.warn(`Erro ao carregar imagem: ${url}`);
+                resolve(null); // Resolve mesmo com erro para não travar o jogo
+            };
+        });
+    }
+
     function setupSprites(role, folderPath) {
         return new Promise((resolve) => {
             const containerId = `${role}-sprite`;
             const container = document.getElementById(containerId);
-            container.innerHTML = ''; 
-            
+            container.innerHTML = '';
+
             let imagesLoaded = 0;
             const totalImages = actionsList.length; // idle, attack, hit, etc.
 
@@ -276,7 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 imagesLoaded++;
                 if (imagesLoaded >= totalImages) {
                     console.log(`Todos os sprites de ${role} carregados.`);
-                    resolve(); // Libera o loading
+                    setTimeout(() => {
+                        resolve(); // Libera o loading
+                    }, 2000); // Pequeno delay para garantir renderização
                 }
             };
 
@@ -285,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.src = `${folderPath}${action}.png`;
                 img.id = `${role}-img-${action}`;
                 img.className = `${role}-sprite-img`;
-                
+
                 // Estilos iniciais
                 img.style.display = 'none';
                 img.style.position = 'absolute';
@@ -293,11 +309,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.style.left = '0';
                 img.style.width = '100%';
                 img.style.height = '100%';
-                
+
                 if (action === 'idle') img.style.display = 'block';
 
                 // --- LISTENERS DE CARREGAMENTO ---
-                img.onload = checkLoad; 
+                img.onload = checkLoad;
                 img.onerror = () => {
                     console.warn(`Imagem falhou ou não existe: ${img.src}`);
                     checkLoad(); // Conta como carregado para não travar o jogo
@@ -326,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const targetId = `${role}-img-${action}`;
         const targetImg = document.getElementById(targetId);
-        
+
         if (targetImg) {
             targetImg.style.display = 'block';
         } else {
@@ -346,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================
     // 3. LOOP DE BATALHA (ATB)
     // ===================================================================
-    
+
     function startBattleLoop() {
         if (battleInterval) clearInterval(battleInterval);
 
@@ -370,10 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Atualiza variável visual
             speedButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             // 2. Atualiza valor lógico
             gameSpeed = parseInt(btn.dataset.speed);
-            
+
             // 3. Reinicia o loop IMEDIATAMENTE com a nova velocidade
             // (Só reinicia se já estivermos em batalha, senão o loop começa errado)
             if (!gameView.classList.contains('view-hidden')) {
@@ -381,19 +397,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-    
+
     // ===================================================================
     // 4. COMUNICAÇÃO COM API
     // ===================================================================
-    
+
     async function sendAction(action, data = {}) {
         if (isProcessingAction) return;
         isProcessingAction = true;
 
         // Animações Imediatas
-        if (action === 'attack') setSprite('player', 'attack', 800); 
-        else if (action === 'potion') setSprite('player', 'cure', 800);   
-        else if (action === 'defend') setSprite('player', 'defence', 0);  
+        if (action === 'attack') setSprite('player', 'attack', 800);
+        else if (action === 'potion') setSprite('player', 'cure', 800);
+        else if (action === 'defend') setSprite('player', 'defence', 0);
 
         if (['attack', 'defend', 'potion'].includes(action)) toggleButtons(false);
         if (action === 'move') mapControls.style.pointerEvents = 'none';
@@ -419,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("ERRO:", error);
             if (mapView.offsetParent !== null) mapLog.innerText = "Erro conexão.";
             else alert("Erro de conexão: " + error.message);
-            
+
             mapControls.style.pointerEvents = 'auto';
             if (!gameView.classList.contains('view-hidden')) toggleButtons(true);
         } finally {
@@ -433,10 +449,15 @@ document.addEventListener('DOMContentLoaded', () => {
             mapControls.style.pointerEvents = 'auto';
             return;
         }
+        console.log('Passandi por playerdatacache');
+        if (response.player) {
+            console.log('Atualizando cache de jogador...');
+            playerDataCache = response.player;
+        }
 
         if (response.view === 'map') {
             stopBattleLoop();
-            if(response.player && response.map_data) {
+            if (response.player && response.map_data) {
                 currentPlayerId = response.player.hero_id_key;
                 drawMapScreen(response.player, response.map_data);
             }
@@ -449,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mapLog.innerText = "Monstro! Batalha em 1s...";
                     mapControls.style.pointerEvents = 'none';
                     setTimeout(() => {
-                        sendAction('trigger_battle', { 
+                        sendAction('trigger_battle', {
                             hero_id: currentPlayerId,
                             difficulty: response.event.difficulty || 'easy',
                             monster_id: response.event.monster_id || null
@@ -470,52 +491,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } else if (response.view === 'battle') {
             mapControls.style.pointerEvents = 'auto';
-            
-            // Verifica se estamos ENTRANDO na batalha agora (vindo do mapa ou menu)
-            // Se o gameView estava escondido, significa que é o início da luta.
-            const isBattleStart = gameView.classList.contains('view-hidden');
 
-            if (isBattleStart) {
+            // Verifica se estamos ENTRANDO na batalha (vinda do mapa/menu)
+            if (gameView.classList.contains('view-hidden')) {
+
                 // 1. Mostra Loading
                 loadingOverlay.classList.remove('view-hidden');
-                
-                // 2. Configura os sprites e ESPERA (await) carregar
-                // Nota: Precisamos que handleApiResponse seja 'async' para usar await, 
-                // ou usamos .then(). Vamos usar .then() para manter compatibilidade fácil.
-                
+
+                // 2. Define URL do Fundo (Pode vir do PHP no futuro, por enquanto fixo)
+                const bgUrl = 'assets/backgrounds/mountain_forest.png';
+
+                // 3. Prepara as Promises (Herói + Monstro + Fundo)
                 const p1 = setupSprites('player', response.battle_data.player_sprite_folder);
                 const p2 = setupSprites('monster', response.battle_data.monster_sprite_folder);
+                const p3 = preloadImage(bgUrl); // <--- NOVO
 
-                // Atualiza as variáveis globais de pasta para controle futuro
                 currentHeroFolder = response.battle_data.player_sprite_folder;
                 currentMonsterFolder = response.battle_data.monster_sprite_folder;
 
-                Promise.all([p1, p2]).then(() => {
-                    // 3. Quando tudo carregar:
+                lastPlayerHp = response.battle_data.player_hp;
+                lastMonsterHp = response.battle_data.monster_hp;
+
+                // 4. Espera TUDO carregar antes de mostrar a tela
+                Promise.all([p1, p2, p3]).then(() => {
+
+                    // Aplica o fundo agora que sabemos que está baixado
+                    document.getElementById('battle-background').style.backgroundImage = `url('${bgUrl}')`;
+
                     updateBattleScreen(response.battle_data);
                     showView('game-view');
-                    loadingOverlay.classList.add('view-hidden'); // Esconde Loading
+
+                    // Esconde Loading e Inicia Loop
+                    loadingOverlay.classList.add('view-hidden');
                     if (!battleInterval) startBattleLoop();
                 });
 
             } else {
-                // Se já estamos na batalha (é apenas um Tick ou Ataque), não mostra loading
+                // Se já está na batalha (apenas atualizando HP/ATB), não faz reload
                 updateBattleScreen(response.battle_data);
-                // O showView aqui é redundante mas seguro
-                // showView('game-view'); 
             }
-
         } else if (response.view === 'battle_over') {
             stopBattleLoop();
             if (response.battle_data) updateBattleScreen(response.battle_data);
-            
-            showView('game-view'); 
+
+            showView('game-view');
             menuArea.style.display = 'none';
             gameOverMessage.innerText = response.log;
             gameOverArea.style.display = 'block';
-            
+
             if (response.hero_id === null) currentPlayerId = null;
+
+        } else if (response.view === 'character_update') {
+            // ATUALIZAÇÃO DO MODAL SEM RECARREGAR TUDO
+            playerDataCache = response.player;
+            updateCharacterSheet();
         }
+
     }
 
     // ===================================================================
@@ -531,10 +562,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawMapScreen(player, mapData) {
         mapName.innerText = mapData.name;
         updateMapHud({ gold: player.gold, potions: player.potions, hp: player.hp, max_hp: player.base_stats.max_hp });
-        
+
         mapGrid.innerHTML = '';
-        mapGrid.style.gridTemplateColumns = `repeat(${mapData.map[0].length}, 40px)`;        
-        
+        mapGrid.style.gridTemplateColumns = `repeat(${mapData.map[0].length}, 40px)`;
+
         let playerAvatar = document.createElement('div');
         playerAvatar.id = 'player-avatar';
         mapGrid.appendChild(playerAvatar);
@@ -547,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (cell === 1) cellDiv.classList.add('path');
                 if (cell === 'S') cellDiv.classList.add('start');
                 if (cell === 'E') cellDiv.classList.add('end');
-                
+
                 const eventKey = `${y},${x}`;
                 const mapId = player.current_map_id;
                 const event = mapData.events[eventKey];
@@ -563,10 +594,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         movePlayerAvatar(player.current_map_pos_x, player.current_map_pos_y);
     }
-    
+
     function movePlayerAvatar(x, y) {
         const av = document.getElementById('player-avatar');
-        if(av) { av.style.left = `${x*40}px`; av.style.top = `${y*40}px`; }
+        if (av) { av.style.left = `${x * 40}px`; av.style.top = `${y * 40}px`; }
     }
 
     function updateBattleScreen(state) {
@@ -584,24 +615,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 2. Escala
-        const baseSize = 300; 
+        const baseSize = 300;
         const playerContainer = document.getElementById('player-sprite');
         const monsterContainer = document.getElementById('monster-sprite');
-        
+
         const pSize = baseSize * (state.player_scale || 1.0);
         const mSize = baseSize * (state.monster_scale || 1.0);
-        
-        if(playerContainer) { playerContainer.style.width = `${pSize}px`; playerContainer.style.height = `${pSize}px`; }
-        if(monsterContainer) { monsterContainer.style.width = `${mSize}px`; monsterContainer.style.height = `${mSize}px`; }
+
+        if (playerContainer) { playerContainer.style.width = `${pSize}px`; playerContainer.style.height = `${pSize}px`; }
+        if (monsterContainer) { monsterContainer.style.width = `${mSize}px`; monsterContainer.style.height = `${mSize}px`; }
+
+        // Verifica Dano no PLAYER
+        if (lastPlayerHp !== null && state.player_hp < lastPlayerHp) {
+            const dmg = lastPlayerHp - state.player_hp;
+            // O PHP não manda se foi critico no player, assumimos normal ou usamos logica
+            showDamageText('player-sprite', dmg, 'normal');
+        }
+        // Verifica Cura no PLAYER
+        else if (lastPlayerHp !== null && state.player_hp > lastPlayerHp) {
+            const heal = state.player_hp - lastPlayerHp;
+            showDamageText('player-sprite', heal, 'heal');
+        }
+
+        // Verifica Dano no MONSTRO
+        if (lastMonsterHp !== null && state.monster_hp < lastMonsterHp) {
+            const dmg = lastMonsterHp - state.monster_hp;
+
+            // Detecta se foi crítico lendo o log (Solução simples sem mudar API)
+            // Ou melhor: adicione 'is_crit' na resposta do PHP se quiser precisão
+            const isCrit = state.log.includes("CRÍTICO");
+            showDamageText('monster-sprite', dmg, isCrit ? 'crit' : 'normal');
+        }
+
+        // Atualiza o cache para o próximo tick
+        lastPlayerHp = state.player_hp;
+        lastMonsterHp = state.monster_hp;
 
         // 3. HUD Player
         battlePlayerName.innerText = state.player_name;
         battlePlayerHpBar.style.width = state.player_hp_percent + '%';
         battlePlayerHpText.innerText = `${state.player_hp} / ${state.player_max_hp}`;
-        
+
         playerStatAtk.innerText = state.player_stats.attack;
         // Usa o 'defense_display' que já vem somado com +10 se tiver buff
-        playerStatDef.innerText = state.player_stats.defense_display; 
+        playerStatDef.innerText = state.player_stats.defense_display;
         // Adiciona um indicador visual se estiver buffado
         if (state.player_def_stacks > 0) {
             playerStatDef.style.color = '#3498db'; // Azul para indicar buff
@@ -617,20 +674,20 @@ document.addEventListener('DOMContentLoaded', () => {
             isPlayerAnimationPlaying = false;
         } else if (state.player_hit) {
             setSprite('player', 'hit', 500);
-            if(playerContainer) {
+            if (playerContainer) {
                 playerContainer.classList.remove('hit-animation'); void playerContainer.offsetWidth; playerContainer.classList.add('hit-animation');
             }
         } else if (!isPlayerAnimationPlaying) {
-             // MUDANÇA AQUI: Se tiver stacks, fica em posição de defesa
-             if (state.player_def_stacks > 0) setSprite('player', 'defence', 0);
-             else setSprite('player', 'idle', 0);
+            // MUDANÇA AQUI: Se tiver stacks, fica em posição de defesa
+            if (state.player_def_stacks > 0) setSprite('player', 'defence', 0);
+            else setSprite('player', 'idle', 0);
         }
 
         // 5. HUD Monstro
         battleMonsterName.innerText = state.monster_name;
         battleMonsterHpBar.style.width = state.monster_hp_percent + '%';
         battleMonsterHpText.innerText = `${state.monster_hp} / ${state.monster_max_hp}`;
-        
+
         monsterStatAtk.innerText = state.monster_stats.attack;
         monsterStatDef.innerText = state.monster_stats.defense_display;
         // Indicador visual para o monstro também
@@ -648,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isMonsterAnimationPlaying = false;
         } else if (state.monster_hit) {
             setSprite('monster', 'hit', 500);
-            if(monsterContainer) {
+            if (monsterContainer) {
                 monsterContainer.classList.remove('hit-animation'); void monsterContainer.offsetWidth; monsterContainer.classList.add('hit-animation');
             }
         } else if (state.player_hit) {
@@ -670,7 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         potionCountEl.innerText = state.potions;
         gameLogEl.innerText = state.log;
-        
+
         // ATUALIZAÇÃO VISUAL DO COOLDOWN DE DEFESA
         if (state.player_def_cd > 0) {
             defendBtn.innerText = `Recarga (${state.player_def_cd})`;
@@ -680,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
             defendBtn.dataset.cooldown = "false";
         }
 
-        const isGameOver = state.game_over; 
+        const isGameOver = state.game_over;
         const playerCanAct = (state.meters && state.meters.player >= 100) && !isGameOver;
         toggleButtons(playerCanAct);
     }
@@ -704,7 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================
     // 6. EVENT LISTENERS (A PARTE QUE FALTAVA!)
     // ===================================================================
-    
+
     // Listeners de Clique dos Botões de Batalha
     attackBtn.addEventListener('click', () => sendAction('attack', {}));
     defendBtn.addEventListener('click', () => sendAction('defend', {}));
@@ -723,19 +780,128 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mapa
         if (!mapView.classList.contains('view-hidden')) {
             if (mapControls.style.pointerEvents !== 'none' && currentPlayerId && !isProcessingAction) {
-                if(['arrowup','w'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'up' });
-                if(['arrowdown','s'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'down' });
-                if(['arrowleft','a'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'left' });
-                if(['arrowright','d'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'right' });
+                if (['arrowup', 'w'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'up' });
+                if (['arrowdown', 's'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'down' });
+                if (['arrowleft', 'a'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'left' });
+                if (['arrowright', 'd'].includes(key)) sendAction('move', { hero_id: currentPlayerId, direction: 'right' });
             }
         }
         // Batalha
         else if (!gameView.classList.contains('view-hidden') && menuArea.style.display !== 'none') {
-            if (isProcessingAction) return; 
+            if (isProcessingAction) return;
             if (key === 'a' && !attackBtn.disabled) sendAction('attack', {});
             if (key === 'd' && !defendBtn.disabled) sendAction('defend', {});
             if (key === ' ' && !potionBtn.disabled) sendAction('potion', {});
         }
     });
+
+    // --- FUNÇÃO DE ATUALIZAR MODAL ---
+    function updateCharacterSheet() {
+        if (!playerDataCache) {
+            console.warn("Nenhum dado de jogador disponível para o modal de personagem.");
+            return;
+        }
+        const p = playerDataCache; // Atalho
+
+        // 1. Coluna Avatar
+        document.getElementById('char-name').innerText = p.class_name;
+        document.getElementById('char-class-name').innerText = "Herói"; // Poderia vir do DB
+        document.getElementById('char-level').innerText = `Nível ${p.level}`;
+
+        // XP Bar
+        const xpPercent = p.exp_to_next_level > 0 ? (p.exp / p.exp_to_next_level) * 100 : 0;
+        document.getElementById('char-xp-bar').style.width = `${xpPercent}%`;
+        document.getElementById('char-xp-text').innerText = `${p.exp} / ${p.exp_to_next_level} XP`;
+
+        // Pontos
+        const points = p.attribute_points || 0;
+        document.getElementById('char-points').innerText = points;
+
+        // Sprite Preview
+        if (currentHeroFolder) {
+            document.getElementById('char-sprite-preview').style.backgroundImage = `url('${currentHeroFolder}idle.png')`;
+        }
+
+        // 2. Coluna Atributos Base
+        // Nota: No DB 'speed' é usado para Agilidade, 'max_hp' base para Vitalidade
+        document.getElementById('val-str').innerText = p.base_stats.strength;
+        document.getElementById('val-agi').innerText = p.base_stats.agility;
+        document.getElementById('val-luk').innerText = p.base_stats.luck;
+        document.getElementById('val-vit').innerText = p.base_stats.max_hp; // Valor base bruto
+
+        // Botões de Evolução (Só aparecem se tiver pontos)
+        const btns = document.querySelectorAll('.btn-plus');
+        btns.forEach(btn => {
+            if (points > 0) btn.classList.add('visible');
+            else btn.classList.remove('visible');
+        });
+
+        // 3. Coluna Status de Combate
+        document.getElementById('total-atk').innerText = p.combat_stats.attack;
+        document.getElementById('total-def').innerText = p.combat_stats.defense;
+        document.getElementById('total-spd').innerText = p.combat_stats.speed || p.base_stats.speed; // Se não tiver speed calculado, usa base
+
+        const crit = (p.combat_stats.crit_chance * 100).toFixed(1);
+        document.getElementById('total-crit').innerText = `${crit}%`;
+
+        const critMult = (p.combat_stats.crit_mult || 1.5) * 100;
+        document.getElementById('total-crit-dmg').innerText = `${critMult}%`;
+
+        document.getElementById('total-hp').innerText = p.base_stats.max_hp; // HP Max atual
+    }
+
+    // --- LISTENERS DO MODAL ---
+
+    // Botão "Personagem" no Mapa
+    const btnOpenChar = document.getElementById('btn-open-char');
+    btnOpenChar.addEventListener('click', () => {
+        updateCharacterSheet(); // Popula com dados atuais
+        document.getElementById('character-modal').classList.remove('view-hidden');
+    });
+
+    // Botão "X" (Fechar)
+    const btnCloseChar = document.getElementById('btn-close-char');
+    btnCloseChar.addEventListener('click', () => {
+        document.getElementById('character-modal').classList.add('view-hidden');
+    });
+
+    // Botões "+" (Distribuir Ponto)
+    const plusButtons = document.querySelectorAll('.btn-plus');
+    plusButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const attr = btn.dataset.attr; // strength, agility, luck, vitality
+            // Envia requisição para a API
+            sendAction('distribute_point', {
+                hero_id: currentPlayerId,
+                attribute: attr
+            });
+        });
+    });
+
+    function showDamageText(targetId, amount, type = 'normal') {
+        const container = document.getElementById(targetId); // 'player-sprite' ou 'monster-sprite'
+        if (!container) return;
+
+        const text = document.createElement('div');
+        text.className = 'damage-text';
+
+        // Configura o conteúdo e estilo
+        if (type === 'crit') {
+            text.innerText = amount + "!";
+            text.classList.add('crit');
+        } else if (type === 'heal') {
+            text.innerText = "+" + amount;
+            text.classList.add('heal');
+        } else {
+            text.innerText = amount;
+        }
+
+        container.appendChild(text);
+
+        // Remove do DOM após a animação (1s)
+        setTimeout(() => {
+            text.remove();
+        }, 1000);
+    }
 
 });

@@ -132,15 +132,22 @@
             <div id="monster-sprite" class="sprite"></div>
         </div>
 
-        <div id="menu-area">
-            <button id="attack-btn" data-action="attack">Atacar (A)</button>
-            <button id="defend-btn" data-action="defend">Defender (D)</button>
-            <button id="potion-btn" data-action="potion">Usar Poção (<span id="potion-count">?</span>) (Espaço)</button>
-        </div>
+        
 
         <div id="game-over-area" style="display: none;">
             <h3 id="game-over-message"></h3>
             <button id="return-to-menu-btn">Voltar ao Ciclo</button>
+        </div>
+        <div id="menu-area">
+            <div id="log-area">
+                <p id="game-log">A batalha começou!</p>
+            </div>
+
+            <div class="action-buttons-row">
+                <button id="attack-btn" data-action="attack">Atacar (A)</button>
+                <button id="defend-btn" data-action="defend">Defender (D)</button>
+                <button id="potion-btn" data-action="potion">Poção (<span id="potion-count">?</span>)</button>
+            </div>
         </div>
     </div>
 
@@ -185,6 +192,97 @@
                 <small style="color: #666; margin-top: 10px;">Use W, A, S, D</small>
             </div>
 
+        </div>
+    </div>
+    <div id="character-modal" class="view-hidden">
+        <div class="char-sheet">
+            <div class="char-header">
+                <h2 id="char-name">Herói</h2>
+                <button id="btn-close-char">X</button>
+            </div>
+            
+            <div class="char-content">
+                
+                <div class="char-column char-avatar-area">
+                    <div id="char-sprite-preview"></div>
+                    <p id="char-class-name" style="color: #aaa; font-size: 0.9rem;">Classe</p>
+                    <h3 id="char-level">Nível 1</h3>
+                    <div class="xp-bar-container">
+                        <div id="char-xp-bar"></div>
+                    </div>
+                    <small id="char-xp-text">0 / 100 XP</small>
+                    
+                    <div class="points-box">
+                        <p>Pontos Disponíveis</p>
+                        <b id="char-points">0</b>
+                    </div>
+                </div>
+
+                <div class="char-column">
+                    <h4>Atributos Base</h4>
+                    
+                    <div class="stat-row">
+                        <div class="stat-label">⚔️ Força</div>
+                        <div class="stat-val">
+                            <b id="val-str">0</b>
+                            <button class="btn-plus" data-attr="strength">+</button>
+                        </div>
+                    </div>
+                    <small class="stat-desc">Aumenta Ataque Físico</small>
+
+                    <div class="stat-row">
+                        <div class="stat-label">💨 Agilidade</div>
+                        <div class="stat-val">
+                            <b id="val-agi">0</b>
+                            <button class="btn-plus" data-attr="agility">+</button>
+                        </div>
+                    </div>
+                    <small class="stat-desc">Aumenta Defesa e Rapidez</small>
+
+                    <div class="stat-row">
+                        <div class="stat-label">🍀 Sorte</div>
+                        <div class="stat-val">
+                            <b id="val-luk">0</b>
+                            <button class="btn-plus" data-attr="luck">+</button>
+                        </div>
+                    </div>
+                    <small class="stat-desc">Aumenta Chance Crítica</small>
+
+                    <div class="stat-row">
+                        <div class="stat-label">❤️ Vitalidade</div>
+                        <div class="stat-val">
+                            <b id="val-vit">0</b>
+                            <button class="btn-plus" data-attr="vitality">+</button>
+                        </div>
+                    </div>
+                    <small class="stat-desc">Aumenta Vida Máxima</small>
+                </div>
+
+                <div class="char-column char-combat-stats">
+                    <h4>Status de Combate</h4>
+                    
+                    <div class="combat-row">
+                        <span>Dano (ATK):</span> <b id="total-atk">0</b>
+                    </div>
+                    <div class="combat-row">
+                        <span>Defesa (DEF):</span> <b id="total-def">0</b>
+                    </div>
+                    <div class="combat-row">
+                        <span>Velocidade (SPD):</span> <b id="total-spd">0</b>
+                    </div>
+                    <div class="combat-row">
+                        <span>Crítico:</span> <b id="total-crit">0%</b>
+                    </div>
+                    <div class="combat-row">
+                        <span>Dano Crítico:</span> <b id="total-crit-dmg">150%</b>
+                    </div>
+                    <hr>
+                    <div class="combat-row">
+                        <span>Vida Máxima:</span> <b id="total-hp" style="color:#e74c3c">0</b>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 

@@ -1,11 +1,16 @@
 /* --- 1. Reset Global e Tema Base --- */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-    font-family: 'Courier New', Courier, monospace; /* Fonte mais RPG retro */
-    background-color: #0f0f0f; /* Mais escuro */
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #050505; /* Fundo preto fora do jogo */
     color: #f0f0f0;
-    display: flex; flex-direction: column; align-items: center;
-    min-height: 100vh; overflow: hidden;
+    /* Centraliza o palco do jogo na tela do navegador */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
 }
 h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; letter-spacing: 2px; }
 
@@ -14,6 +19,23 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 #title-screen, #prologue-view, #hero-selection-view, #map-view, #game-view {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     width: 100%; height: 100vh;
+}
+#game-view {
+    /* O Palco 720p */
+    position: relative;
+    width: 1280px;  /* Largura 720p */
+    height: 720px; /* Altura 720p */
+    
+    /* Estilo da "Janela" do jogo */
+    background-color: #111;
+    border: 4px solid #333;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    overflow: hidden; /* Nada sai de dentro desse quadrado */
+    
+    /* Organização interna da Interface */
+    display: flex; 
+    flex-direction: column;
+    justify-content: space-between; /* HUD no topo, Menu em baixo */
 }
 /* --- TELA DO MAPA (DESKTOP LAYOUT) --- */
 #map-view {
@@ -59,7 +81,7 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
     border-radius: 5px;
     color: #ccc;
 }
-.hud-row { margin-bottom: 10px; font-size: 1.2em; display: flex; justify-content: space-between; }
+.hud-row { margin-bottom: 10px; font-size: 1.1em; display: flex; justify-content: space-between; }
 .hud-row b { color: #fff; }
 
 #map-log-area {
@@ -342,65 +364,227 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 /* --- 6. Tela de Batalha (Ajustes) --- */
 #game-view { justify-content: flex-start; }
 #battle-background {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background-image: url('assets/backgrounds/mountain_forest.png');
-    background-size: cover; background-position: center bottom; z-index: 0;
+    position: absolute;
+    top: 0; 
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    /* Imagem de fundo ajustada para cobrir o 720p */
+    background-size: cover; 
+    background-position: center; 
+    filter: brightness(0.6); /* Escurece um pouco para destacar a UI */
 }
 #battle-arena {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    display: flex; justify-content: center; align-items: flex-end;
-    gap: 150px; padding-bottom: 150px; z-index: 1; pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Fica acima do fundo, mas abaixo da UI */
+    pointer-events: none; /* Permite clicar nos menus através da arena */
 }
 .sprite {
     position: relative; width: 300px; height: 300px; image-rendering: pixelated;
 }
 .sprite img {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    object-fit: contain; display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); /* Sombra no pé */
 }
 .sprite img.active { display: block; }
 /* #monster-sprite { transform: scaleX(-1); } */
 
+#player-sprite {
+    position: absolute;
+    bottom: 160px; /* Altura do chão em relação à base 720p */
+    left: 150px;   /* Distância da esquerda */
+    width: 300px;
+    height: 300px;
+}
+
+#monster-sprite {
+    position: absolute;
+    bottom: 160px; /* Mesma linha do chão */
+    right: 150px;  /* Distância da direita */
+    width: 300px;
+    height: 300px;
+    /* Se precisar espelhar o monstro: transform: scaleX(-1); */
+}
+
 /* HUD */
 #battle-hud {
-    display: flex; justify-content: space-between; width: 90%; max-width: 900px;
-    padding: 10px; background-color: rgba(0,0,0,0.7); border-radius: 8px; margin-top: 20px; z-index: 2;
+    z-index: 10;
+    width: 100%;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    /* Gradiente para ler o texto melhor sobre o fundo */
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
 }
-.hud-section { flex: 1; padding: 0 10px; }
-.monster-info { text-align: right; }
-.hp-bar-container, .atb-bar-container {
-    width: 100%; background: #333; border: 1px solid #000; margin: 5px 0; overflow: hidden;
+
+.hud-section {
+    width: 350px;
+    /* Fundo semi-transparente atrás das barras */
+    background: rgba(20, 20, 20, 0.85);
+    padding: 15px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
-.hp-bar-container { height: 20px; border-radius: 5px; }
+
+.hud-section h2 {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+    text-align: left;
+    color: #e67e22;
+}
+.monster-info h2 { text-align: right; color: #c0392b; }
+
+.monster-info .stats-display { justify-content: flex-end; }
+.hp-bar-container {
+    height: 24px;
+    background: #222;
+    border: 2px solid #000;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    position: relative;
+}
+
+#battle-player-hp-bar { background-color: #27ae60; height: 100%; transition: width 0.3s; }
+#battle-monster-hp-bar { background-color: #c0392b; height: 100%; transition: width 0.3s; }
 .atb-bar-container { height: 8px; border-radius: 3px; }
 .hp-bar { height: 100%; width: 100%; transition: width 0.3s; }
 .atb-bar { height: 100%; width: 0%; transition: width 0.2s linear; }
 #battle-player-hp-bar { background: #27ae60; }
 #battle-monster-hp-bar { background: #c0392b; }
+#battle-player-hp-text, #battle-monster-hp-text {
+    font-size: 0.9rem;
+    font-weight: bold;
+    display: block;
+    text-align: right;
+    margin-top: -22px; /* Gambiarra visual para subir o texto para dentro da barra (opcional) */
+    margin-right: 5px;
+    position: relative;
+    z-index: 2;
+    text-shadow: 1px 1px 0 #000;
+}
 #battle-player-atb-bar, #battle-monster-atb-bar { background: #2980b9; }
 .atb-bar.ready { background: #f1c40f; box-shadow: 0 0 8px #f1c40f; }
-
+/* Stats (ATK, DEF) pequenos embaixo da barra */
+.stats-display {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-top: 5px;
+}
 /* Log e Controles */
 #log-area {
-    background: rgba(0,0,0,0.6); padding: 10px; width: 60%; max-width: 600px;
-    margin-top: 10px; text-align: center; border-radius: 5px; z-index: 2;
+    width: 600px; /* Largura para o texto não espalhar demais */
+    text-align: center;
+    margin-bottom: 5px;
+    text-shadow: 2px 2px 0 #000; /* Sombra forte para ler em qualquer fundo */
+    pointer-events: none; /* Clica através do texto */
 }
+
+#game-log {
+    color: #f1c40f;
+    font-size: 1rem;
+    background: rgba(0, 0, 0, 0.4); /* Fundo muito sutil só para leitura */
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: inline-block; /* Fundo só onde tem texto */
+}
+@keyframes pulseText { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
 #menu-area {
-    display: flex; justify-content: center; gap: 15px; width: 100%; margin-top: auto; margin-bottom: 30px; z-index: 3;
+    /* Posicionamento Fixo no Rodapé do Jogo */
+    position: absolute;
+    bottom: 30px; /* Distância da borda de baixo */
+    left: 50%;
+    transform: translateX(-50%); /* Centraliza exato no meio */
+    
+    z-index: 20;
+    width: auto; /* O tamanho se ajusta aos botões */
+    height: auto;
+    
+    /* Removemos a "faixa" de fundo */
+    background: transparent;
+    border: none;
+    
+    display: flex;
+    flex-direction: column-reverse; /* Log em cima, botões embaixo */
+    align-items: center;
+    gap: 15px;
 }
-#menu-area button, #game-over-area button {
-    padding: 15px 25px; font-size: 1.1em; font-weight: bold; cursor: pointer;
-    background: #e67e22; color: #000; border: none; border-radius: 4px; transition: 0.2s;
+
+#menu-area button {
+    width: auto; /* Largura automática baseada no texto */
+    min-width: 120px; /* Tamanho mínimo para não ficar muito pequeno */
+    padding: 8px 16px; /* Menor que antes */
+    
+    font-size: 0.9rem; /* Fonte um pouco menor */
+    font-family: inherit;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    
+    /* Visual "Botão de Vidro" escuro */
+    background: rgba(20, 20, 20, 0.9); 
+    color: #ccc;
+    border: 1px solid #555;
+    border-radius: 4px;
+    
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
 }
+
+/* Efeito ao passar o mouse */
+#menu-area button:hover:not(:disabled) {
+    background: #e67e22; /* Laranja RPG */
+    color: #111;
+    border-color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px #e67e22;
+}
+
+/* Container dos botões apenas para alinhar */
+.action-buttons-row {
+    display: flex;
+    gap: 15px; /* Espaço entre os botões */
+    padding: 10px;
+    /* Fundo sutil apenas atrás dos botões (opcional, se quiser 100% limpo remova esta linha) */
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 70%);
+    border-radius: 20px;
+}
+
 #menu-area button:hover { background: #d35400; transform: translateY(-2px); }
 #menu-area button:disabled { background: #555; cursor: not-allowed; transform: none; }
 
 /* Game Over */
 #game-over-area {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.95); border: 2px solid #c0392b; padding: 40px; text-align: center; z-index: 10;
+    width: 400px;
+    /* Centraliza ABSOLUTO dentro do container 720p */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    background: rgba(0,0,0,0.95);
+    border: 4px solid #c0392b;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 0 50px #c0392b;
 }
 
+/* Para garantir que o display: flex do .view-hidden não quebre o layout */
+#game-view.view-hidden {
+    display: none !important;
+}
 /* Animações */
 .hit-animation { animation: shake 0.3s; }
 @keyframes shake { 0%, 100% { transform: translateX(0); filter: brightness(1); } 25%, 75% { transform: translateX(-10px); filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5); } 50% { transform: translateX(10px); } }
@@ -581,17 +765,15 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 }
 
 /* --- Controles de Velocidade --- */
+/* 6.5 - Controles Extras */
 #speed-controls {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    gap: 5px;
-    z-index: 10; /* Acima do HUD e Fundo */
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 5px;
-    border-radius: 5px;
-    border: 1px solid #555;
+    top: 15px;
+    right: 50%; /* Centralizado no topo ou canto */
+    transform: translateX(50%);
+    z-index: 20;
+    background: rgba(0,0,0,0.8);
+    border: 1px solid #444;
 }
 
 .speed-btn {
@@ -631,3 +813,114 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 }
 .press-start { font-size: 1.5rem; margin-top: 20px; animation: blink 1s infinite; text-transform: uppercase; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+
+/* --- MODAL DE PERSONAGEM --- */
+#character-modal {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.9); z-index: 2000;
+    display: flex; justify-content: center; align-items: center;
+}
+
+.char-sheet {
+    background: #1a1a1a; border: 2px solid #e67e22;
+    width: 95%; max-width: 800px; /* Mais largo */
+    padding: 20px; border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
+
+.char-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 20px;
+}
+
+#btn-close-char {
+    background: #c0392b; color: #fff; border: none; width: 30px; height: 30px; 
+    font-weight: bold; cursor: pointer; border-radius: 4px;
+}
+
+.char-content {
+    display: flex; gap: 20px;
+    flex-wrap: wrap; /* Responsivo se a tela for pequena */
+}
+
+.char-column {
+    flex: 1; min-width: 200px;
+    background: #222; padding: 15px; border-radius: 5px;
+    display: flex; flex-direction: column;
+}
+
+h4 { color: #e67e22; margin-bottom: 15px; text-align: left; border-bottom: 1px solid #444; padding-bottom: 5px; }
+
+/* Coluna 1: Avatar */
+.char-avatar-area { align-items: center; text-align: center; background: transparent; border: none; }
+#char-sprite-preview { 
+    width: 100px; height: 100px; background-size: contain; background-repeat: no-repeat; 
+    background-position: center bottom; image-rendering: pixelated; margin-bottom: 10px; 
+    filter: drop-shadow(0 0 10px #000);
+}
+.xp-bar-container { width: 100%; height: 8px; background: #444; border-radius: 4px; margin: 5px 0; overflow: hidden; }
+#char-xp-bar { height: 100%; background: #9b59b6; width: 0%; }
+.points-box { margin-top: 20px; background: #333; padding: 10px; width: 100%; border-radius: 5px; }
+#char-points { font-size: 1.5rem; color: #f1c40f; display: block; }
+
+/* Coluna 2: Base Stats */
+.stat-row { 
+    display: flex; justify-content: space-between; align-items: center; 
+    background: #2a2a2a; padding: 8px; border-radius: 4px; margin-bottom: 5px;
+}
+.stat-val { display: flex; align-items: center; gap: 10px; }
+.stat-desc { font-size: 0.7rem; color: #666; margin-bottom: 10px; font-style: italic; }
+
+.btn-plus { 
+    background: #27ae60; color: white; width: 24px; height: 24px; border: none; 
+    border-radius: 50%; cursor: pointer; font-weight: bold; display: none; 
+}
+.btn-plus:hover { background: #2ecc71; transform: scale(1.1); }
+.btn-plus.visible { display: block; }
+
+/* Coluna 3: Combat Stats */
+.char-combat-stats { background: #1e1e1e; border: 1px solid #333; }
+.combat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; }
+.combat-row b { color: #ddd; }
+
+/* --- DANO FLUTUANTE --- */
+.damage-text {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-weight: bold;
+    font-size: 2rem;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+    pointer-events: none; /* Não interfere no clique */
+    z-index: 100;
+    animation: floatUp 1s forwards ease-out;
+}
+
+.damage-text.crit {
+    color: #ff0; /* Amarelo para crítico */
+    font-size: 3rem;
+    text-shadow: 3px 3px 0 #c0392b; /* Sombra vermelha */
+}
+
+.damage-text.heal {
+    color: #2ecc71; /* Verde para cura */
+    text-shadow: 2px 2px 0 #006400;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 1;
+        top: 20%; /* Começa perto da cabeça do sprite */
+        transform: translateX(-50%) scale(0.5);
+    }
+    20% {
+        transform: translateX(-50%) scale(1.2); /* "Pop" inicial */
+    }
+    100% {
+        opacity: 0;
+        top: -20%; /* Sobe até sumir */
+        transform: translateX(-50%) scale(1);
+    }
+}

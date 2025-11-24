@@ -1,33 +1,111 @@
 <?php
 /**
  * /api/logic/player_logic.php
- * Lida com o Herói (DB e Cálculos)
- * (Versão corrigida e limpa)
+ * Lida com a lógica do jogador, níveis e cálculo de status.
  */
 
 /**
- * Calcula os stats de combate (ATK, DEF) com base nos atributos (STR, LCK)
+ * FUNÇÃO PRINCIPAL DE RECÁLCULO
+ * Reconstrói os status de combate do zero usando a fórmula:
+ * Base (Arquivo) + (Atributos * Peso) + (Level * Crescimento) + Equipamento
  */
-function calculate_combat_stats($base_stats, $combat_stats_base, $equipment) {
-    $combat_stats = $combat_stats_base; // Pega 'attack', 'defense', etc. base
-
-    // Força aumenta ataque e defesa
-    $combat_stats['attack']  += floor($base_stats['strength'] * 1);
-    $combat_stats['defense'] += floor($base_stats['strength'] * 0.5);
-
-    // Sorte aumenta chance de crítico
-    $combat_stats['crit_chance'] += $base_stats['luck'] * 0.01;
-
-    // TODO: Adicionar bônus de equipamento
-    if ($equipment['weapon2'] === 'shield') {
-        $combat_stats['defense'] += 3; // Bônus de escudo
+function recalculate_player_stats($player) {
+    // 1. Carrega o Template Original do Arquivo
+    $all_heroes = require __DIR__ . '/../data/heroes.php';
+    $hero_key = $player['hero_id_key'];
+    
+    if (!isset($all_heroes[$hero_key])) {
+        // Fallback de segurança caso o ID não exista mais
+        return $player;
     }
+    
+    $template = $all_heroes[$hero_key];
+    
+    // 2. Define os Pesos (Configuração de Balanceamento)
+    // Quantos pontos de status cada atributo concede
+    $WEIGHTS = [
+        'strength_to_atk' => 2.0,  // 1 Força = 2 Ataque
+        'strength_to_def' => 0.5,  // 1 Força = 0.5 Defesa
+        'agility_to_def'  => 1.0,  // 1 Agilidade = 1 Defesa
+        'agility_to_spd'  => 1.0,  // 1 Agilidade = 1 Speed (ATB)
+        'luck_to_crit'    => 0.025, // 1 Sorte = 2.5% Crítico
+        'luck_crit_mult'  => 0.10 // 1 Sorte = 10% Crit Multiplier
+    ];
 
-    return $combat_stats;
+    // 3. Pega os dados atuais do jogador
+    $level = $player['level'];
+    $str = $player['base_stats']['strength'];
+    $agi = $player['base_stats']['agility'];
+    $lck = $player['base_stats']['luck'];
+    $equipment = $player['equipment'];
+
+    // 4. Recupera o Crescimento por Nível do arquivo (ou usa padrão)
+    // Você deve adicionar 'growth' no heroes.php, senão usa esses defaults
+    $growth_atk = $template['growth']['attack'] ?? 1; 
+    $growth_def = $template['growth']['defense'] ?? 0.5;
+    $growth_hp  = $template['growth']['max_hp'] ?? 10;
+
+    // ============================================================
+    // FÓRMULA DE CÁLCULO
+    // ============================================================
+
+    // -- ATAQUE --
+    // Base do Arquivo + (Força * 2) + (Nível * Crescimento)
+    $new_atk = $template['combat_stats_base']['attack'] 
+             + ($str * $WEIGHTS['strength_to_atk']) 
+             + ($level * $growth_atk);
+
+    // -- DEFESA --
+    // Base do Arquivo + (Força * 0.5) + (Agilidade * 1) + (Nível * Crescimento)
+    $new_def = $template['combat_stats_base']['defense'] 
+             + ($str * $WEIGHTS['strength_to_def'])
+             + ($agi * $WEIGHTS['agility_to_def'])
+             + ($level * $growth_def);
+
+    // -- CRÍTICO --
+    // Base do Arquivo + (Sorte * 0.5%)
+    $new_crit = $template['combat_stats_base']['crit_chance'] 
+              + ($lck * $WEIGHTS['luck_to_crit']);
+
+    $new_crit_mult = $template['combat_stats_base']['crit_mult']
+                   + ($lck * $WEIGHTS['luck_crit_mult']);
+
+    $new_spd = $template['base_stats']['speed']
+             + ($agi * $WEIGHTS['agility_to_spd']);
+    // -- HP MÁXIMO --
+    // Base do Arquivo + (Vitalidade * X - se tiver atributo vit) + (Nível * 10)
+    // Aqui estamos somando ao que já está no DB, mas o ideal seria recalcular tudo.
+    // Para simplificar e manter sua lógica de poção de vitalidade, vamos manter o base_stats['max_hp']
+    // como o valor "raw" e adicionar bônus de nível se quiser, ou deixar o checkLevelUp controlar o HP base.
+    // Vou manter o HP base como está no DB para não resetar poções de vida usadas.
+
+    // ============================================================
+    // BÔNUS DE EQUIPAMENTO
+    // ============================================================
+    
+    if (($equipment['weapon2'] ?? '') === 'shield') {
+        $new_def += 5;
+    }
+    if (($equipment['weapon1'] ?? '') === 'greataxe') {
+        $new_atk += 5;
+    }
+    // Adicione mais lógicas de equipamentos aqui no futuro
+
+    // 5. Aplica os novos valores
+    $player['combat_stats']['attack'] = ceil($new_atk);
+    $player['combat_stats']['defense'] = ceil($new_def);
+    $player['combat_stats']['crit_chance'] = $new_crit;
+    $player['combat_stats']['crit_mult'] = round($new_crit_mult,2);
+    $player['combat_stats']['speed'] = round($new_spd);
+
+    // Atualiza também a Speed baseada na Agilidade/Speed stat se desejar
+    // $player['base_stats']['speed'] = ... (se quiser recalcular speed também)
+
+    return $player;
 }
 
 /**
- * Tenta carregar o herói do DB. Se não existir, cria um novo.
+ * Tenta carregar o herói do DB.
  */
 function getPlayerState($pdo, $hero_id_key) {
     $stmt = $pdo->prepare("SELECT * FROM heroes WHERE hero_id_key = ?");
@@ -35,145 +113,155 @@ function getPlayerState($pdo, $hero_id_key) {
     $hero = $stmt->fetch();
 
     if ($hero) {
-        // Herói existe, decodifica o JSON
+        // Decodifica JSONs
         $hero['base_stats'] = json_decode($hero['base_stats_json'], true);
         $hero['combat_stats'] = json_decode($hero['combat_stats_json'], true);
         $hero['equipment'] = json_decode($hero['equipment_json'], true);
-        // Decodifica os eventos concluídos
         $hero['completed_events'] = json_decode($hero['completed_events_json'], true);
+        
+        // Opcional: Recalcular sempre que carrega para garantir integridade
+        // Isso corrige status se você mudar o balanceamento no heroes.php
+        $hero = recalculate_player_stats($hero);
+        
         return $hero;
     } else {
-        // Herói não existe, cria um novo
         return createNewPlayer($pdo, $hero_id_key);
     }
 }
 
 /**
- * Cria um novo herói (Nível 1) no banco de dados.
+ * Cria novo herói e salva no DB
  */
 function createNewPlayer($pdo, $hero_id_key) {
     $all_heroes = require __DIR__ . '/../data/heroes.php';
-    if (!isset($all_heroes[$hero_id_key])) {
-        throw new Exception("ID de Herói inválido: $hero_id_key");
-    }
+    if (!isset($all_heroes[$hero_id_key])) throw new Exception("Herói inválido.");
+    
     $template = $all_heroes[$hero_id_key];
-
-    // Carrega o mapa inicial para pegar a posição 'S'
-    // (Presume que o mapa 'map1.php' existe)
     $start_map = require __DIR__ . '/../data/maps/map1.php'; 
 
-    // ================================================================
-    // A CORREÇÃO ESTÁ AQUI
-    // ================================================================
-    // O placeholder '/*...*/' foi substituído pelos parâmetros corretos.
-    $combat_stats = calculate_combat_stats(
-        $template['base_stats'],
-        $template['combat_stats_base'],
-        $template['starting_equipment']
-    );
-    // ================================================================
-
-    $newHero = [
+    // Estrutura inicial provisória
+    $player = [
         'hero_id_key' => $hero_id_key,
         'class_name' => $template['name'],
         'level' => 1,
         'exp' => 0,
-        'exp_to_next_level' => 50,
+        'exp_to_next_level' => 100,
         'hp' => $template['base_stats']['max_hp'],
-        'base_stats_json' => json_encode($template['base_stats']),
-        'combat_stats_json' => json_encode($combat_stats),
-        'equipment_json' => json_encode($template['starting_equipment']),
+        'base_stats' => $template['base_stats'],
+        'equipment' => $template['starting_equipment'],
+        'combat_stats' => $template['combat_stats_base'], // Será sobrescrito logo abaixo
         'attribute_points' => 0,
         'current_map_id' => $start_map['id'],
         'current_map_pos_x' => $start_map['start_pos']['x'],
         'current_map_pos_y' => $start_map['start_pos']['y'],
-        'gold' => 10,
-        'potions' => 3,
-        'completed_events_json' => '{}' // Começa com JSON vazio
+        'gold' => 0,
+        'potions' => 2,
+        'completed_events' => []
     ];
 
-    // Lógica de INSERT dinâmica
-    $columns = implode(', ', array_keys($newHero));
-    $placeholders = ':' . implode(', :', array_keys($newHero));
+    // Realiza o primeiro cálculo real de status
+    $player = recalculate_player_stats($player);
+
+    // Prepara para salvar
+    $dbData = $player;
+    $dbData['base_stats_json'] = json_encode($player['base_stats']);
+    $dbData['combat_stats_json'] = json_encode($player['combat_stats']);
+    $dbData['equipment_json'] = json_encode($player['equipment']);
+    $dbData['completed_events_json'] = json_encode($player['completed_events']);
+    
+    // Remove chaves de array que não são colunas no DB para o Insert
+    unset($dbData['base_stats'], $dbData['combat_stats'], $dbData['equipment'], $dbData['completed_events']);
+
+    $columns = implode(', ', array_keys($dbData));
+    $placeholders = ':' . implode(', :', array_keys($dbData));
     $sql = "INSERT INTO heroes ($columns) VALUES ($placeholders)";
     
-    $pdo->prepare($sql)->execute($newHero);
+    $pdo->prepare($sql)->execute($dbData);
 
-    return getPlayerState($pdo, $hero_id_key);
+    // Retorna o objeto completo (com arrays)
+    return $player; 
 }
 
 /**
- * Salva o estado atualizado do herói no DB (agora com posição e eventos)
- */
-function savePlayerState($pdo, $playerData) {
-    // Garante que os dados JSON estão como string
-    $playerData['base_stats_json'] = json_encode($playerData['base_stats']);
-    $playerData['combat_stats_json'] = json_encode($playerData['combat_stats']);
-    $playerData['equipment_json'] = json_encode($playerData['equipment']);
-    // Codifica os eventos concluídos
-    $playerData['completed_events_json'] = json_encode($playerData['completed_events']);
-
-    $sql = "UPDATE heroes SET
-                level = :level, exp = :exp, exp_to_next_level = :exp_to_next_level,
-                hp = :hp, base_stats_json = :base_stats_json,
-                combat_stats_json = :combat_stats_json, equipment_json = :equipment_json,
-                attribute_points = :attribute_points,
-                current_map_id = :current_map_id,
-                current_map_pos_x = :current_map_pos_x,
-                current_map_pos_y = :current_map_pos_y,
-                gold = :gold, potions = :potions,
-                completed_events_json = :completed_events_json
-            WHERE id = :id";
-    
-    // Prepara um array limpo para execução
-    $exec_data = [
-        ':level' => $playerData['level'],
-        ':exp' => $playerData['exp'],
-        ':exp_to_next_level' => $playerData['exp_to_next_level'],
-        ':hp' => $playerData['hp'],
-        ':base_stats_json' => $playerData['base_stats_json'],
-        ':combat_stats_json' => $playerData['combat_stats_json'],
-        ':equipment_json' => $playerData['equipment_json'],
-        ':attribute_points' => $playerData['attribute_points'],
-        ':current_map_id' => $playerData['current_map_id'],
-        ':current_map_pos_x' => $playerData['current_map_pos_x'],
-        ':current_map_pos_y' => $playerData['current_map_pos_y'],
-        ':gold' => $playerData['gold'],
-        ':potions' => $playerData['potions'],
-        ':completed_events_json' => $playerData['completed_events_json'],
-        ':id' => $playerData['id']
-    ];
-    
-    $pdo->prepare($sql)->execute($exec_data);
-}
-
-/**
- * Verifica se o jogador subiu de nível.
+ * Verifica Level Up e Aplica a Nova Lógica
  */
 function checkLevelUp($player) {
+    $leveled_up = false;
     $log = "";
-    if ($player['exp'] >= $player['exp_to_next_level']) {
-        $player['level']++;
-        $player['exp'] -= $player['exp_to_next_level']; 
-        $player['exp_to_next_level'] = floor($player['exp_to_next_level'] * 1.5 * $player['level']);
-        $player['attribute_points'] += 1; 
-        
-        $player['base_stats']['max_hp'] += 10;
-        $player['base_stats']['strength'] += 1;
-        $player['base_stats']['luck'] += 1;
     
-        
-        $heal_amount = floor($player['base_stats']['max_hp'] * 0.3);
-        $player['hp'] = min($player['base_stats']['max_hp'], $player['hp'] + $heal_amount); 
+    if (!isset($player['attribute_points'])) $player['attribute_points'] = 0;
 
-        // Recalcula stats de combate (usa o array 'combat_stats' como 'base' de combate)
-        $player['combat_stats'] = calculate_combat_stats(
-            $player['base_stats'], 
-            $player['combat_stats'], // Passa os stats de combate atuais como base
-            $player['equipment']
-        );
+    // Fórmula XP: 100 * (1.5 ^ (Level - 1))
+    $xp_next = round(100 * pow(1.5, $player['level'] - 1));
+
+    while ($player['exp'] >= $xp_next) {
+        $player['exp'] -= $xp_next;
+        $player['level']++;
+        $leveled_up = true;
         
-        $log = "VOCÊ SUBIU PARA O NÍVEL {$player['level']}! (Saúde recuperada)";
+        // Recalcula o próximo alvo de XP
+        $xp_next = round(100 * pow(1.5, $player['level'] - 1));
+
+        // --- GANHOS DO NÍVEL ---
+        $player['attribute_points'] += 3; // Pontos para distribuir
+        
+        // Ganho automático de Status Base (opcional, se quiser auto-evolução além dos pontos)
+        // Vamos dar um pouco de vida e sorte automática
+        $player['base_stats']['max_hp'] += 15; 
+        
+        // RECALCULA OS STATUS DE COMBATE COM A NOVA FÓRMULA
+        // Isso vai pegar o novo Level, novos Atributos e atualizar Atk/Def
+        $player = recalculate_player_stats($player);
+        
+        // Cura ao subir de nível
+        $player['hp'] = $player['base_stats']['max_hp'] * 0.35; // Cura 35% do HP máximo ao subir de nível
+
+        $player['exp_to_next_level'] = $xp_next;
     }
+
+    if ($leveled_up) {
+        $log = "LEVEL UP! Nível {$player['level']}! (+3 Pontos)";
+    }
+
     return ['player' => $player, 'log' => $log];
 }
+
+/**
+ * Salva o estado (Update)
+ */
+function savePlayerState($pdo, $player) {
+    $sql = "UPDATE heroes SET
+            level = :level, exp = :exp, 
+            exp_to_next_level = :exp_to_next_level,
+            hp = :hp, 
+            base_stats_json = :base,
+            combat_stats_json = :combat, 
+            equipment_json = :equip,
+            attribute_points = :points,
+            current_map_id = :map_id,
+            current_map_pos_x = :pos_x,
+            current_map_pos_y = :pos_y,
+            gold = :gold, potions = :potions,
+            completed_events_json = :events
+            WHERE hero_id_key = :id_key";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':level' => $player['level'],
+        ':exp' => $player['exp'],
+        ':hp' => $player['hp'],
+        ':base' => json_encode($player['base_stats']),
+        ':combat' => json_encode($player['combat_stats']),
+        ':equip' => json_encode($player['equipment']),
+        ':points' => $player['attribute_points'],
+        ':map_id' => $player['current_map_id'],
+        ':pos_x' => $player['current_map_pos_x'],
+        ':pos_y' => $player['current_map_pos_y'],
+        ':gold' => $player['gold'],
+        ':potions' => $player['potions'],
+        ':events' => json_encode($player['completed_events']),
+        ':id_key' => $player['hero_id_key'],
+        ':exp_to_next_level' => $player['exp_to_next_level']
+    ]);
+}
+?>
