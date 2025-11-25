@@ -92,8 +92,8 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
     border-radius: 5px;
     color: #ccc;
 }
-.hud-row { margin-bottom: 10px; font-size: 1.1em; display: flex; justify-content: space-between; }
-.hud-row b { color: #fff; }
+.hud-row { margin-bottom: 10px; font-size: 1.1em; display: flex; justify-content: space-between; margin-right: 5px; }
+.hud-row b { color: #fff; margin-left: 10px; }
 
 #map-log-area {
     height: 150px;
@@ -275,12 +275,12 @@ h1, h2, h3 { color: #e67e22; text-align: center; text-transform: uppercase; lett
 .game-subtitle { font-size: 1.2em; color: #888; margin-bottom: 50px; font-style: italic; }
 
 .menu-buttons { display: flex; flex-direction: column; gap: 20px; width: 300px; }
-.main-menu-btn {
+.main-menu-btn, #return-to-menu-btn {
     padding: 20px; font-size: 1.5em; background: transparent;
     border: 2px solid #e67e22; color: #e67e22; cursor: pointer;
     transition: all 0.3s; font-family: inherit; text-transform: uppercase;
 }
-.main-menu-btn:hover { background: #e67e22; color: #000; transform: scale(1.05); }
+.main-menu-btn:hover, #return-to-menu-btn:hover { background: #e67e22; color: #000; transform: scale(1.05); }
 .credits { position: absolute; bottom: 10px; font-size: 0.8em; color: #444; }
 
 /* --- 4. Prólogo (História) --- */
@@ -1036,3 +1036,19 @@ h4 { color: #e67e22; margin-bottom: 15px; text-align: left; border-bottom: 1px s
     box-shadow: none !important;
     opacity: 0.6;
 }
+
+/* --- TELA DE TRANSIÇÃO (MAPA) --- */
+#transition-screen {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: #000; z-index: 3000; /* Acima de tudo */
+    display: flex; justify-content: center; align-items: center;
+    opacity: 0; pointer-events: none; transition: opacity 1s ease;
+}
+
+#transition-screen.active {
+    opacity: 1; pointer-events: all;
+}
+
+.transition-content { text-align: center; }
+.transition-title { color: #e67e22; font-size: 3rem; margin-bottom: 20px; letter-spacing: 5px; }
+.transition-text { color: #fff; font-size: 1.2rem; margin-bottom: 40px; animation: blink 2s infinite; }

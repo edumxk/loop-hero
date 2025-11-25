@@ -5,7 +5,7 @@ return [
         'sprite_folder' => 'assets/monsters/goblin/',
         'base_level'    => 1,
         'base_exp'      => 37,
-        'base_gold'     => 10,
+        'base_gold'     => 40,
         'scale'         => 0.7,
         
         'stats' => [
@@ -23,16 +23,16 @@ return [
             'max_hp'        => 15,  // Ganha +15 HP por nível
             'attack'        => 3,   // Ganha +2 Atk por nível
             'defense'       => 2, 
-            'speed'         => 1.5    // Ganha +1 Velocidade por nível,
+            'speed'         => 2   // Ganha +1 Velocidade por nível,
         ]
     ],
 
     'orc' => [
         'name'          => 'Orc Brutamontes',
         'sprite_folder' => 'assets/monsters/orc/',
-        'base_level'    => 3,
+        'base_level'    => 1,
         'base_exp'      => 102,
-        'base_gold'     => 20,
+        'base_gold'     => 125,
         'scale'         => 1.3,
         
         'stats' => [
@@ -49,17 +49,17 @@ return [
             'max_hp'        => 30,
             'attack'        => 5,
             'defense'       => 2,
-            'speed'         => 1.5
+            'speed'         => 2
         ]
     ],
 
     'troll' => [
         'name'          => 'Troll da Montanha',
         'sprite_folder' => 'assets/monsters/troll/',
-        'base_level'    => 5,
+        'base_level'    => 1,
         'base_exp'      => 212,
-        'base_gold'     => 60,
-        'scale'         => 2.0,
+        'base_gold'     => 285,
+        'scale'         => 1.5,
         
         'stats' => [
             'max_hp'        => 350,
@@ -74,8 +74,8 @@ return [
         'stats_per_level' => [
             'max_hp'        => 50,
             'attack'        => 5,
-            'defense'       => 1.5, // Ganha +4.5% Resistência por nível
-            'speed'         => 1.0
+            'defense'       => 3, // Ganha +4.5% Resistência por nível
+            'speed'         => 2
         ],
         'growth' => [
             'exp_multiplier' => 1.2 // Monstro cresce 20% mais rápido por nível

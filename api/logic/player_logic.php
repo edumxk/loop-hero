@@ -25,8 +25,8 @@ function recalculate_player_stats($player) {
     // Quantos pontos de status cada atributo concede
     $WEIGHTS = [
         'strength_to_atk' => 2.0,  // 1 Força = 2 Ataque
-        'strength_to_def' => 0.5,  // 1 Força = 0.5 Defesa
-        'agility_to_def'  => 1.0,  // 1 Agilidade = 1 Defesa
+        'strength_to_def' => 1.0,  // 1 Força = 0.5 Defesa
+        'agility_to_def'  => 2.0,  // 1 Agilidade = 1 Defesa
         'agility_to_spd'  => 1.0,  // 1 Agilidade = 1 Speed (ATB)
         'luck_to_crit'    => 0.025, // 1 Sorte = 2.5% Crítico
         'luck_crit_mult'  => 0.10 // 1 Sorte = 10% Crit Multiplier
@@ -51,29 +51,30 @@ function recalculate_player_stats($player) {
 
     // -- ATAQUE --
     // Base do Arquivo + (Força * 2) + (Nível * Crescimento)
-    $new_atk = $template['combat_stats_base']['attack'] 
+    $new_atk = ceil($template['combat_stats_base']['attack'] 
              + ($str * $WEIGHTS['strength_to_atk']) 
-             + ($level * $growth_atk);
+             + ($level * $growth_atk));
 
     // -- DEFESA --
     // Base do Arquivo + (Força * 0.5) + (Agilidade * 1) + (Nível * Crescimento)
-    $new_def = $template['combat_stats_base']['defense'] 
+    $new_def = ceil($template['combat_stats_base']['defense'] 
              + ($str * $WEIGHTS['strength_to_def'])
              + ($agi * $WEIGHTS['agility_to_def'])
-             + ($level * $growth_def);
+             + ($level * $growth_def));
 
     // -- CRÍTICO --
     // Base do Arquivo + (Sorte * 0.5%)
-    $new_crit = $template['combat_stats_base']['crit_chance'] 
-              + ($lck * $WEIGHTS['luck_to_crit']);
+    $new_crit = round($template['combat_stats_base']['crit_chance'] 
+              + ($lck * $WEIGHTS['luck_to_crit']),2);
 
-    $new_crit_mult = $template['combat_stats_base']['crit_mult']
-                   + ($lck * $WEIGHTS['luck_crit_mult']);
+    $new_crit_mult = round($template['combat_stats_base']['crit_mult']
+                   + ($lck * $WEIGHTS['luck_crit_mult']),2);
 
-    $new_spd = $template['base_stats']['speed']
-             + ($agi * $WEIGHTS['agility_to_spd']);
+    $new_spd = ceil($template['base_stats']['speed']
+             + ($agi * $WEIGHTS['agility_to_spd']));
 
-    $new_hp_max = ($growth_hp * $level) + $template['base_stats']['max_hp'];
+    $new_hp_max = ceil(($growth_hp * $level) + $template['base_stats']['max_hp']);
+    $new_HP = ceil($player['base_stats']['hp'] + $new_hp_max - $player['base_stats']['max_hp']);
     // -- HP MÁXIMO --
     // Base do Arquivo + (Vitalidade * X - se tiver atributo vit) + (Nível * 10)
     // Aqui estamos somando ao que já está no DB, mas o ideal seria recalcular tudo.
@@ -86,7 +87,7 @@ function recalculate_player_stats($player) {
     // ============================================================
     
     if (($equipment['weapon2'] ?? '') === 'shield') {
-        $new_def += 5;
+        $new_def += 7;
     }
     if (($equipment['weapon1'] ?? '') === 'greataxe') {
         $new_atk += 5;
@@ -100,6 +101,7 @@ function recalculate_player_stats($player) {
     $player['combat_stats']['crit_mult'] = round($new_crit_mult,2);
     $player['combat_stats']['speed'] = round($new_spd);
     $player['base_stats']['max_hp'] = ceil($new_hp_max);
+    $player['base_stats']['hp'] = ceil($new_HP);
 
     // Atualiza também a Speed baseada na Agilidade/Speed stat se desejar
     // $player['base_stats']['speed'] = ... (se quiser recalcular speed também)
@@ -149,7 +151,7 @@ function createNewPlayer($pdo, $hero_id_key) {
         'level' => 1,
         'exp' => 0,
         'exp_to_next_level' => 100,
-        'hp' => $template['base_stats']['max_hp'],
+        'hp' => $template['base_stats']['max_hp']+$template['growth']['max_hp'],
         'base_stats' => $template['base_stats'],
         'equipment' => $template['starting_equipment'],
         'combat_stats' => $template['combat_stats_base'], // Será sobrescrito logo abaixo
@@ -210,14 +212,15 @@ function checkLevelUp($player) {
         
         // Ganho automático de Status Base (opcional, se quiser auto-evolução além dos pontos)
         // Vamos dar um pouco de vida e sorte automática
-        $player['base_stats']['max_hp'] += 15; 
+        $player['base_stats']['max_hp'] += 15;
+        $player['base_stats']['hp'] += 15; // Cura automática
         
         // RECALCULA OS STATUS DE COMBATE COM A NOVA FÓRMULA
         // Isso vai pegar o novo Level, novos Atributos e atualizar Atk/Def
         $player = recalculate_player_stats($player);
         
         // Cura ao subir de nível
-        $player['hp'] = $player['base_stats']['max_hp'] * 0.35; // Cura 35% do HP máximo ao subir de nível
+        $player['hp'] = ceil($player['base_stats']['max_hp'] * 0.50); // Cura 50% do HP máximo ao subir de nível
 
         $player['exp_to_next_level'] = $xp_next;
     }

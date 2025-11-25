@@ -6,7 +6,7 @@
  */
 return [
     'id' => 'map1',
-    'name' => 'Ruínas Assombradas',
+    'name' => 'A Floresta Eterna',
     'start_pos' => ['x' => 3, 'y' => 14], // Posição 'S' (Centro inferior)
 
     // A representação visual da matriz (7x7)
@@ -24,13 +24,13 @@ return [
         [0, 1, 1, 1, 1, 1, 0], // Linha 10
         [0, 1, 0, 0, 0, 1, 0], // Linha 11
         [0, 1, 0, 0, 0, 0, 0], // Linha 12
-        [0, 1, 1, 1, 1, 1, 1], // Linha 13
+        [0, 1, 1, 1, 1, 1, 0], // Linha 13
         [0, 0, 0, 'S', 0, 0, 0], // Linha 14
     ],
 
     // Eventos (o que acontece em cada célula)
     'events' => [
-        '13,6' => ['type' => 'shop'],
+        '11,5' => ['type' => 'shop'],
         '13,4' => [
             'type' => 'monster',
             'difficulty' => 'easy',
@@ -39,7 +39,7 @@ return [
         '13,5' => [
             'type' => 'treasure',
             'treasure_type' => 'gold',
-            'value' => 750
+            'value' => 75,
         ],
         '12,1' => [
             'type' => 'monster',
@@ -50,11 +50,6 @@ return [
             'type' => 'monster',
             'difficulty' => 'easy',
             'monster_id' => 'goblin'
-        ],
-        '11,5' => [
-            'type' => 'treasure',
-            'treasure_type' => 'gold',
-            'value' => 75
         ],
          '9,0' => [
             'type' => 'treasure',
@@ -99,7 +94,8 @@ return [
         '3,0' => [
             'type' => 'monster',
             'difficulty' => 'hard',
-            'monster_id' => 'troll'
+            'monster_id' => 'troll',
+            'potions' => 2
         ],
         '3,2' => [
             'type' => 'treasure',

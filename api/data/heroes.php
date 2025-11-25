@@ -9,8 +9,8 @@ return [
         'sprite_folder' => 'assets/heroes/paladino/',
         'scale' => 1.0,
         'base_stats' => [ // Atributos puros
-            'max_hp'   => 120,
-            'strength' => 1,
+            'max_hp'   => 140,
+            'strength' => 3,
             'luck'     => 1,
             'agility' => 1,
             'speed' => 10,
@@ -18,7 +18,7 @@ return [
         'combat_stats_base' => [ // Stats de combate (antes de 'strength' e 'luck')
             'attack'      => 5,
             'defense'     => 2,
-            'crit_chance' => 0.05,
+            'crit_chance' => 0.12,
             'crit_mult'   => 1.5
         ],
         'growth' => [
@@ -37,15 +37,15 @@ return [
         'scale' => 0.80,
         'base_stats' => [
             'max_hp'   => 140,
-            'strength' => 1,
+            'strength' => 2,
             'luck'     => 1,
-            'agility' => 1,
+            'agility' => 2,
             'speed' => 10,
         ],
         'combat_stats_base' => [
             'attack'      => 5,
             'defense'     => 2,
-            'crit_chance' => 0.03,
+            'crit_chance' => 0.07,
             'crit_mult'   => 2 // Mais dano crítico
         ],
         'growth' => [

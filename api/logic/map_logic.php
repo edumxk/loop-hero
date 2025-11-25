@@ -1,117 +1,124 @@
 <?php
 /**
  * /api/logic/map_logic.php
- * Lida com a lógica de mapa e eventos.
- * (Versão limpa, sem texto fora das tags)
+ * Lida com a lógica de movimentação e eventos de mapa
  */
 
-function loadMapData($mapId) {
-    $mapFile = __DIR__ . "/../data/maps/{$mapId}.php";
-    if (!file_exists($mapFile)) {
-        throw new Exception("Mapa '$mapId' não encontrado.");
-    }
-    return require $mapFile;
+function loadMapData($map_id) {
+    $path = __DIR__ . "/../data/maps/{$map_id}.php";
+    if (!file_exists($path)) throw new Exception("Mapa não encontrado: $map_id");
+    return require $path;
 }
 
-/**
- * Tenta mover o jogador e processa o evento da nova célula.
- */
-function processMove($player, $direction) {
-    $map = loadMapData($player['current_map_id']);
-    
-    $x = $player['current_map_pos_x'];
-    $y = $player['current_map_pos_y'];
+function processMove(&$player, $direction) {
+    $current_map = loadMapData($player['current_map_id']);
+    $new_x = $player['current_map_pos_x'];
+    $new_y = $player['current_map_pos_y'];
 
-    // Calcula a nova posição
+    // 1. Calcula Nova Posição
     switch ($direction) {
-        case 'up':    $y--; break;
-        case 'down':  $y++; break;
-        case 'left':  $x--; break;
-        case 'right': $x++; break;
-        default: return ['status' => 'invalid_move', 'log' => 'Direção inválida.'];
+        case 'up': $new_y--; break;
+        case 'down': $new_y++; break;
+        case 'left': $new_x--; break;
+        case 'right': $new_x++; break;
+        default: return ['status' => 'invalid_move', 'log' => 'Direção inválida.', 'player' => $player];
     }
 
-    // Verifica se a nova posição é válida
-    if (!isset($map['map'][$y][$x]) || $map['map'][$y][$x] === 0) {
+    // 2. Validação de Limites e Paredes (0)
+    if (!isset($current_map['map'][$new_y][$new_x]) || $current_map['map'][$new_y][$new_x] === 0) {
+        return ['status' => 'blocked', 'log' => "Caminho bloqueado.", 'player' => $player];
+    }
+
+    // 3. Atualiza Posição
+    $player['current_map_pos_x'] = $new_x;
+    $player['current_map_pos_y'] = $new_y;
+
+    // 4. Verifica o Tipo de Terreno
+    $cell_type = $current_map['map'][$new_y][$new_x];
+
+    // --- LÓGICA DE SAÍDA (TRANSITION) ---
+    if ($cell_type === 'E') {
+        // Define o próximo mapa (Loop: map1 <-> map2)
+        // Você pode expandir isso para map3, map4 etc.
+        $next_map_id = ($player['current_map_id'] === 'map1') ? 'map2' : 'map1';
+        
+        // Carrega o próximo mapa para saber onde é o inicio ('S')
+        $next_map_data = loadMapData($next_map_id);
+        
+        // Atualiza o jogador para o novo mapa
+        $player['current_map_id'] = $next_map_id;
+        $player['current_map_pos_x'] = $next_map_data['start_pos']['x'];
+        $player['current_map_pos_y'] = $next_map_data['start_pos']['y'];
+        $player['completed_events'] = []; // Reseta eventos completados para o novo mapa
+
         return [
-            'status' => 'blocked',
-            'log' => 'Você bateu na parede.',
-            'player' => $player // Retorna o jogador original
+            'status' => 'map_switch', // Status especial para o Frontend animar
+            'log' => "Você viajou para uma nova região.",
+            'new_map_data' => $next_map_data, // Envia o novo mapa para desenhar
+            'player' => $player
         ];
     }
 
-    // A Posição é válida. Atualiza o jogador.
-    $player['current_map_pos_x'] = $x;
-    $player['current_map_pos_y'] = $y;
-
-    // Prepara a resposta
-    $response = [
-        'status' => 'moved',
-        'player' => $player,
-        'log' => 'Você se moveu.'
-    ];
-
-    // Verifica se a célula é o FIM
-    if ($map['map'][$y][$x] === 'E') {
-        $response['status'] = 'level_complete';
-        $response['log'] = 'Você encontrou a saída!';
-        return $response;
-    }
-
-    // --- LÓGICA DE EVENTO ATUALIZADA ---
-    $event_key = "$y,$x";
+    // 5. Verifica Eventos (Monstros, Lojas, Tesouros, Armadilhas)
+    $event_key = "$new_y,$new_x";
     $map_id = $player['current_map_id'];
-
-    // 1. Verifica se o evento existe E se NÃO foi concluído
-    if (isset($map['events'][$event_key]) && 
-        !isset($player['completed_events'][$map_id][$event_key])) {
+    
+    if (isset($current_map['events'][$event_key])) {
+        $event = $current_map['events'][$event_key];
         
-        $event = $map['events'][$event_key];
-        $response['event'] = $event; // Anexa o evento para o JS (para o atraso)
+        // Se o evento já foi completado, não faz nada especial
+        if (isset($player['completed_events'][$map_id][$event_key])) {
+            return ['status' => 'moved', 'log' => "Local seguro.", 'player' => $player];
+        }
 
-        // 2. Processa eventos instantâneos (Armadilha, Tesouro)
+        // Prepara resposta base com o evento para o JS (para animações/delays)
+        $response = [
+            'status' => 'moved', 
+            'event' => $event, 
+            'log' => "Algo chamou sua atenção...",
+            'player' => $player
+        ];
+
+        // Processa eventos instantâneos aqui
         if ($event['type'] === 'trap') {
-            $player['hp'] -= $event['damage'];
-            $response['log'] = "Você ativou uma armadilha e perdeu {$event['damage']} HP!";
-            if ($player['hp'] <= 0) $player['hp'] = 1;
+            $damage = $event['damage'] ?? 10;
+            $player['hp'] -= $damage;
+            $response['log'] = "Você ativou uma armadilha e perdeu {$damage} HP!";
+            if ($player['hp'] <= 0) $player['hp'] = 1; // Deixa com 1 de vida pra não morrer no mapa
+            
             // Marca como concluído
             $player['completed_events'][$map_id][$event_key] = true;
         }
         
-        if ($event['type'] === 'treasure') {
-            
-            $treasure_type = $event['treasure_type'] ?? 'gold'; // O padrão é 'gold'
-            $value = $event['value'];
+        else if ($event['type'] === 'treasure') {
+            $treasure_type = $event['treasure_type'] ?? 'gold';
+            $value = $event['value'] ?? 0;
 
-            // Verifica o tipo de tesouro e aplica o bônus
             switch ($treasure_type) {
                 case 'gold':
                     $player['gold'] += $value;
                     $response['log'] = "Você encontrou um tesouro! (+{$value} Ouro)";
                     break;
-                
                 case 'potion':
                     $player['potions'] += $value;
                     $response['log'] = "Você encontrou {$value} poção(ões)!";
                     break;
-                
-                // (Você pode adicionar 'case "key":' etc. aqui no futuro)
-                
                 default:
-                    $response['log'] = "Você encontrou um tesouro misterioso...";
+                    $response['log'] = "Você encontrou algo misterioso...";
             }
             
-            // Marca o evento como concluído
+            // Marca como concluído
             $player['completed_events'][$map_id][$event_key] = true;
         }
         
-        if ($event['type'] === 'monster') {
-            // Não marca como concluído ainda.
-            // O JS vai chamar 'trigger_battle'.
-            // Vamos marcar como concluído APÓS a batalha (no game.php)
-        }
+        // Nota: Monstros e Lojas são tratados pelo JS (trigger_battle / open_shop),
+        // então não marcamos como concluído aqui.
+        
+        // Atualiza o player na resposta caso tenha mudado HP/Gold
+        $response['player'] = $player;
+        return $response;
     }
-    
-    $response['player'] = $player;
-    return $response;
+
+    return ['status' => 'moved', 'log' => "", 'player' => $player];
 }
+?>

@@ -4,7 +4,7 @@
  * Lógica de Spawn que respeita a configuração do monstros.php
  */
 
-function spawnMonster($player_level, $difficulty = 'easy', $monster_id = null) {
+function spawnMonster($player_level, $difficulty = 'easy', $monster_id = null, $potions = null) {
     
     $all_monsters = require __DIR__ . '/../data/monsters.php';
     
@@ -47,6 +47,9 @@ function spawnMonster($player_level, $difficulty = 'easy', $monster_id = null) {
     // Valores padrão ATB
     if (!isset($final_stats['speed'])) $final_stats['speed'] = 8;
     if (!isset($final_stats['potions'])) $final_stats['potions'] = 0;
+    if ($potions !== null) {
+        $final_stats['potions'] = $potions;
+    }
 
     // APLICAÇÃO DA ESCALA
     if ($level_gap > 0) {
@@ -56,12 +59,13 @@ function spawnMonster($player_level, $difficulty = 'easy', $monster_id = null) {
         $final_stats['max_hp'] += ($level_gap * ($growth['max_hp'] ?? 10));
         $final_stats['attack'] += ($level_gap * ($growth['attack'] ?? 2));
         $final_stats['defense'] += ($level_gap * ($growth['defense'] ?? 0.5));
+        $final_stats['speed'] += ($level_gap * ($growth['speed'] ?? 0.5));
     }
     
     // O HP atual começa cheio
     $final_stats['max_hp'] = floor($final_stats['max_hp']);
     $final_stats['attack'] = floor($final_stats['attack']);
-    $final_stats['defense'] = floor($final_stats['defense']); // Arredonda defesa (ex: 0.5 vira 0, 1.5 vira 1)
+    $final_stats['defense'] = ceil($final_stats['defense']); 
     
     // 4. Recompensas
     $base_exp = $template['base_exp'] ?? 10;
@@ -77,6 +81,7 @@ function spawnMonster($player_level, $difficulty = 'easy', $monster_id = null) {
         'stats' => $final_stats,
         'sprite_folder' => $template['sprite_folder'],
         'scale' => $template['scale'] ?? 1.0,
+        'speed' => $final_stats['speed'],
         'exp_reward' => $exp_reward,
         'gold_reward' => $gold_reward
     ];

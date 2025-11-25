@@ -395,11 +395,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Segurança: Se não houver dados do jogador, não faz nada
         //if (!playerDataCache) return;
         console.log("Atualizando UI da Loja com dados do jogador:", playerDataCache);
-        const p = playerDataCache;
+        let p = playerDataCache;
 
         // 1. Atualiza o Saldo de Ouro no Topo
         let goldDisplay = document.getElementById('shop-gold-display');
-        if (goldDisplay) goldDisplay.innerText = p.gold;
+        //if (goldDisplay) 
+            goldDisplay.innerText = p.gold;
         
         // 2. Atualiza Quantidades do Inventário (O que você já tem)
         let elPotions = document.getElementById('shop-has-potions');
@@ -631,6 +632,50 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.player_pos) movePlayerAvatar(response.player_pos.x, response.player_pos.y);
             if (response.hud_update) updateMapHud(response.hud_update);
             if (response.log) mapLog.innerText = response.log;
+
+            // --- VERIFICAÇÃO DE TRANSIÇÃO DE MAPA ---
+            if (response.status === 'map_switch') {
+                // 1. Mostra transição
+                const transitionScreen = document.getElementById('transition-screen');
+                transitionScreen.classList.remove('view-hidden');
+                void transitionScreen.offsetWidth; 
+                transitionScreen.classList.add('active');
+
+                // 2. Espera a animação...
+                setTimeout(() => {
+                    
+                    // --- CORREÇÃO AQUI ---
+                    // Verifica se o servidor mandou o novo mapa e redesenha TUDO
+                    if (response.map_data && response.player) {
+                        // Atualiza Cache Global
+                        currentPlayerId = response.player.hero_id_key;
+                        playerDataCache = response.player;
+                        console.log(response.map_data);
+                        // REDESENHA O GRID DO ZERO (Isso muda o visual do mapa)
+                        drawMapScreen(response.player, response.map_data);
+                        
+                        // FORÇA A POSIÇÃO DO BONECO (Para garantir que ele vá para o Start)
+                        movePlayerAvatar(response.player.current_map_pos_x, response.player.current_map_pos_y);
+                        
+                        console.log("Mapa atualizado para:", response.map_data.name);
+                    }
+                    // ---------------------
+
+                    if (response.hud_update) updateMapHud(response.hud_update);
+                    
+                    // Remove tela de transição
+                    transitionScreen.classList.remove('active');
+                    setTimeout(() => {
+                        transitionScreen.classList.add('view-hidden');
+                    }, 1000);
+
+                    mapControls.style.pointerEvents = 'auto';
+
+                }, 2500);
+                
+                return; // Importante: Para o código aqui para não conflitar com outras atualizações
+            }
+            // ----------------------------------------
         
             if (response.event) {
                 if (response.event.type === 'monster') {
@@ -640,7 +685,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         sendAction('trigger_battle', {
                             hero_id: currentPlayerId,
                             difficulty: response.event.difficulty || 'easy',
-                            monster_id: response.event.monster_id || null
+                            monster_id: response.event.monster_id || null,
+                            potions: response.event.potions || null
                         });
                     }, 1000);
                 }else if (['trap', 'treasure'].includes(response.event.type)) {
@@ -751,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateMapHud(hud) {
         if (hud.gold !== undefined) mapHudGold.innerText = hud.gold;
         if (hud.potions !== undefined) mapHudPotions.innerText = hud.potions;
-        if (hud.hp !== undefined) mapHudHp.innerText = `${hud.hp} / ${hud.max_hp}`;
+        if (hud.hp !== undefined) mapHudHp.innerText = `${hud.hp}/${hud.max_hp}`;
     }
 
     function drawMapScreen(player, mapData) {
@@ -898,17 +944,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.monster_hp <= 0) {
             setSprite('monster', 'dead', 0);
             isMonsterAnimationPlaying = false;
-        } else if (state.monster_hit) {
+        } 
+        else if (state.monster_hit) {
             setSprite('monster', 'hit', 500);
-            if (monsterContainer) {
-                monsterContainer.classList.remove('hit-animation'); void monsterContainer.offsetWidth; monsterContainer.classList.add('hit-animation');
+            if(monsterContainer) {
+                monsterContainer.classList.remove('hit-animation'); 
+                void monsterContainer.offsetWidth; 
+                monsterContainer.classList.add('hit-animation');
             }
-        } else if (state.player_hit) {
+        } 
+        else if (state.monster_healed) {
+            // NOVO: Se a flag de cura veio true, toca animação de cura
+            setSprite('monster', 'cure', 1000);
+        }
+        else if (state.player_hit) {
+            // Se o player tomou dano, é porque o monstro atacou
             setSprite('monster', 'attack', 500);
-        } else if (!isMonsterAnimationPlaying) {
-            // Opcional: Se quiser sprite de defesa para monstro, use a lógica abaixo:
-            // if (state.monster_def_stacks > 0) setSprite('monster', 'defence', 0); else ...
-            setSprite('monster', 'idle', 0);
+        } 
+        else if (!isMonsterAnimationPlaying) {
+            // ESTADO DE REPOUSO
+            
+            // Se tiver stacks de defesa, mostra sprite de defesa fixo
+            if (state.monster_def_stacks > 0) {
+                setSprite('monster', 'defence', 0);
+            } else {
+                setSprite('monster', 'idle', 0);
+            }
         }
 
         // 7. ATB e Logs
@@ -1043,6 +1104,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('total-crit-dmg').innerText = `${critMult}%`;
 
         document.getElementById('total-hp').innerText = p.base_stats.max_hp; // HP Max atual
+
+        updateShopUI(); 
     }
 
     // --- LISTENERS DO MODAL ---

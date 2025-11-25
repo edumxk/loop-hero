@@ -15,6 +15,13 @@
             <div class="loading-spinner"></div>
         </div>
     </div>
+    <div id="transition-screen" class="view-hidden">
+        <div class="transition-content">
+            <h1 class="transition-title">Ciclo Completado</h1>
+            <p class="transition-text">Avançando para a próxima região...</p>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
     <div id="start-screen">
             <h1 class="game-title">Loop Hero</h1>
             <p class="press-start">Clique para Iniciar</p>
@@ -159,9 +166,9 @@
                 <h2 id="map-name">Carregando...</h2>
                 
                 <div id="map-hud" class="info-box">
-                    <div class="hud-row">❤️ HP: <b id="map-hud-hp">?/?</b></div>
-                    <div class="hud-row">💰 Ouro: <b id="map-hud-gold">?</b></div>
-                    <div class="hud-row">🧪 Poções: <b id="map-hud-potions">?</b></div>
+                    <div class="hud-row">❤️ <b id="map-hud-hp">?/?</b></div>
+                    <div class="hud-row">💰 <b id="map-hud-gold">?</b></div>
+                    <div class="hud-row">🧪 <b id="map-hud-potions">?</b></div>
                 </div>
 
                 <div id="map-log-area" class="info-box">
@@ -249,7 +256,7 @@
                     <small class="stat-desc">Aumenta Chance Crítica</small>
 
                     <div class="stat-row">
-                        <div class="stat-label">❤️ Vitalidade</div>
+                        <div class="stat-label">❤️ HP</div>
                         <div class="stat-val">
                             <b id="val-vit">0</b>
                             <button class="btn-plus" data-attr="vitality">+</button>
@@ -277,7 +284,7 @@
                         <span>Dano Crítico:</span> <b id="total-crit-dmg">150%</b>
                     </div>
                     <hr>
-                    <div class="combat-row">
+                    <div class="combat-row view-hidden" style="margin-top: 10px;">
                         <span>Vida Máxima:</span> <b id="total-hp" style="color:#e74c3c">0</b>
                     </div>
                 </div>

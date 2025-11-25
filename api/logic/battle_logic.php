@@ -8,6 +8,7 @@ function calculateBattleDamage($attacker_stats, $defender_stats) {
     // 1. Extrair status
     $atk = $attacker_stats['attack'];
     $def = $defender_stats['defense']; // Agora 1 Def = 3% Resistência
+    $lifesteal = 0;
     
     $crit_chance = $attacker_stats['crit_chance'] ?? 0.05;
     $crit_mult = $attacker_stats['crit_mult'] ?? 1.5;
@@ -40,8 +41,9 @@ function calculateBattleDamage($attacker_stats, $defender_stats) {
     $log_msg = "";
 
     if ($is_crit) {
-        $final_damage = floor($final_damage * $crit_mult);
+        $final_damage = ceil($final_damage * $crit_mult);
         $log_msg = "CRÍTICO! (-$final_damage HP)";
+        $lifesteal = floor($final_damage * 0.15); // 10% de lifesteal no crítico
     } else {
         // Mostra o dano e, se tiver defesa, mostra quanto mitigou (opcional, para debug visual)
         $percent_text = round($reduction_percent * 100);
@@ -51,7 +53,8 @@ function calculateBattleDamage($attacker_stats, $defender_stats) {
     return [
         'damage' => (int)$final_damage,
         'is_crit' => $is_crit,
-        'log' => $log_msg
+        'log' => $log_msg,
+        'lifesteal' => $lifesteal ?? 0 
     ];
 }
 ?>
