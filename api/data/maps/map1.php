@@ -39,7 +39,7 @@ return [
         '13,5' => [
             'type' => 'treasure',
             'treasure_type' => 'gold',
-            'value' => 75,
+            'value' => 250,
         ],
         '12,1' => [
             'type' => 'monster',
