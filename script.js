@@ -83,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseShop = document.getElementById('btn-close-shop');
     const shopBuyButtons = document.querySelectorAll('.btn-buy');
 
+    const battleTheme = document.getElementById('battle-theme');
+    const stepAudio = document.getElementById('step-audio'); // <--- NOVO SELETOR
+
     // ===================================================================
     // 1. LÓGICA DE MENU E NAVEGAÇÃO
     // ===================================================================
@@ -94,8 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initGameAudio() {
         // 1. Toca a música do menu
+        playMenuMusic();
         if (menuAudio) {
-            menuAudio.volume = 0.4; // Volume agradável
+            menuAudio.volume = 0.6; // Volume agradável
             menuAudio.play().catch(e => console.log("Áudio bloqueado:", e));
         }
 
@@ -106,6 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. Carrega os saves e vai para o menu real
         checkSaves();
         hideStartScreenWithFade();
+    }
+
+    function playStepSound() {
+        if (stepAudio) {
+            stepAudio.volume = 0.8; // Volume ajustável
+            stepAudio.currentTime = 0; // Reinicia o som para tocar rápido se apertar várias vezes
+            stepAudio.play().catch(e => {}); // Ignora erro se o navegador bloquear
+        }
     }
 
     // Adiciona listeners globais para o primeiro clique/tecla
@@ -174,7 +186,20 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error("Erro ao checar saves", e);
         }
-        menuAudio.play().catch(e => console.warn("Áudio do menu bloqueado pelo navegador", e));
+    }
+    function playMenuMusic() {
+        // 1. Garante que outros sons parem
+        if (battleTheme) { battleTheme.pause(); battleTheme.currentTime = 0; }
+        if (prologueAudio) { prologueAudio.pause(); prologueAudio.currentTime = 0; }
+
+        // 2. Toca o Menu
+        if (menuAudio) {
+            menuAudio.volume = 0.4;
+            // Só manda tocar se já não estiver tocando
+            if (menuAudio.paused) {
+                menuAudio.play().catch(e => console.log("Menu audio bloqueado:", e));
+            }
+        }
     }
 
     function stopPrologueAudio() {
@@ -182,6 +207,48 @@ document.addEventListener('DOMContentLoaded', () => {
             prologueAudio.pause();
             prologueAudio.currentTime = 0; // Reseta para o início
         }
+    }
+
+    function playBattleMusic() {
+        if (menuAudio) menuAudio.pause(); // Garante que o menu pare
+        if (battleTheme) {
+            battleTheme.volume = 0.3; // Volume um pouco mais baixo para não atrapalhar os SFX
+            battleTheme.currentTime = 0;
+            battleTheme.play().catch(e => console.log("Autoplay bloqueado", e));
+        }
+    }
+
+    function stopBattleMusic() {
+        if (battleTheme) {
+            battleTheme.pause();
+            battleTheme.currentTime = 0;
+        }
+        // Se voltou para o mapa/menu, religa o som do menu? 
+        // Opcional, mas recomendado:
+        // if (menuAudio && !currentPlayerId) menuAudio.play(); 
+    }
+
+    function playBattleSFX(type) {
+        // Mapeamento dos arquivos (Variações 1 e 2)
+        const sounds = {
+            'attack': ['attack1.mp3', 'attack2.mp3'],
+            'crit':   ['critico1.mp3', 'critico2.mp3'],
+            'defence':['defence1.mp3', 'defence2.mp3'],
+            // --- NOVOS SONS ---
+            'potion':  ['cure.mp3'], // Certifique-se de ter este arquivo
+            'death':   ['dead.mp3']
+        };
+
+        if (!sounds[type]) return;
+
+        // Escolhe aleatoriamente entre as variações
+        const variations = sounds[type];
+        const randomFile = variations[Math.floor(Math.random() * variations.length)];
+        
+        // Cria um novo objeto de áudio para cada SFX (permite sons simultâneos)
+        const sfx = new Audio(`assets/sounds/battle/${randomFile}`);
+        sfx.volume = 0.8; // Efeitos mais altos que a música
+        sfx.play().catch(e => console.warn("SFX erro", e));
     }
 
     function showView(viewId) {
@@ -487,12 +554,23 @@ document.addEventListener('DOMContentLoaded', () => {
         isProcessingAction = true;
 
         // Animações Imediatas
-        if (action === 'attack') setSprite('player', 'attack', 800);
-        else if (action === 'potion') setSprite('player', 'cure', 800);
-        else if (action === 'defend') setSprite('player', 'defence', 0);
+        if (action === 'attack') setSprite('player', 'attack', 600);
+        else if (action === 'potion') {
+            setSprite('player', 'cure', 800);
+            playBattleSFX('potion');
+        }
+        else if (action === 'defend'){
+            setSprite('player', 'defence', 800);
+            playBattleSFX('defence');
+        } 
 
         if (['attack', 'defend', 'potion'].includes(action)) toggleButtons(false);
-        if (action === 'move') mapControls.style.pointerEvents = 'none';
+        
+        if (action === 'move') {
+            console.log("Tocando som de passo");
+            playStepSound();
+            mapControls.style.pointerEvents = 'none';
+        }
 
         const url = `api/game.php?action=${action}`;
         const options = {
@@ -737,6 +815,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 1. Mostra Loading
                 loadingOverlay.classList.remove('view-hidden');
+                // --- LIGAR MÚSICA ---
+                playBattleMusic(); 
+                // --------------------
 
                 // 2. Define URL do Fundo (Pode vir do PHP no futuro, por enquanto fixo)
                 const bgUrl = 'assets/backgrounds/mountain_forest.png';
@@ -772,8 +853,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (response.view === 'battle_over') {
             stopBattleLoop();
+            stopBattleMusic(); // <--- DESLIGAR MÚSICA
             if (response.battle_data) updateBattleScreen(response.battle_data);
-
+            // Verifica o resultado
+            if (response.hero_id === null) {
+                // GAME OVER (MORTE)
+                // O som 'death' já deve ter tocado no updateBattleScreen ou podemos forçar aqui:
+                // playBattleSFX('death'); 
+            } else {
+                // VITÓRIA (Volta para o Mapa)
+                // --- TOCA MÚSICA DO MENU/MAPA NOVAMENTE ---
+                playMenuMusic();
+            }
             showView('game-view');
             menuArea.style.display = 'none';
             gameOverMessage.innerText = response.log;
@@ -871,6 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dmg = lastPlayerHp - state.player_hp;
             // O PHP não manda se foi critico no player, assumimos normal ou usamos logica
             showDamageText('player-sprite', dmg, 'normal');
+            playBattleSFX('attack');
         }
         // Verifica Cura no PLAYER
         else if (lastPlayerHp !== null && state.player_hp > lastPlayerHp) {
@@ -886,6 +978,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ou melhor: adicione 'is_crit' na resposta do PHP se quiser precisão
             const isCrit = state.log.includes("CRÍTICO");
             showDamageText('monster-sprite', dmg, isCrit ? 'crit' : 'normal');
+            // --- SOM ---
+            if (isCrit) {
+                playBattleSFX('crit'); // Som de Crítico
+            } else {
+                playBattleSFX('attack'); // Som de Ataque Normal
+            }
         }
 
         // Atualiza o cache para o próximo tick
@@ -913,6 +1011,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.player_hp <= 0) {
             setSprite('player', 'dead', 0);
             isPlayerAnimationPlaying = false;
+            // --- SOM DE MORTE DO HERÓI ---
+            // Verifica se já não tocamos para não repetir em loop
+            if (!state.game_over_sound_played) { 
+                playBattleSFX('death');
+                // Uma pequena gambiarra para marcar que já tocou no estado local se necessário,
+                // mas como o jogo vai para 'battle_over' logo em seguida, o loop para.
+            }
         } else if (state.player_hit) {
             setSprite('player', 'hit', 500);
             if (playerContainer) {
@@ -956,6 +1061,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (state.monster_healed) {
             // NOVO: Se a flag de cura veio true, toca animação de cura
             setSprite('monster', 'cure', 1000);
+            playBattleSFX('potion');
         }
         else if (state.player_hit) {
             // Se o player tomou dano, é porque o monstro atacou
@@ -1013,6 +1119,11 @@ document.addEventListener('DOMContentLoaded', () => {
         potionBtn.disabled = !enable || pots === 0;
         potionBtn.style.opacity = (!enable || pots === 0) ? '0.5' : '1';
     }
+
+    defendBtn.addEventListener('click', () => {
+        playBattleSFX('defence'); // <--- Toca som de escudo
+        sendAction('defend', {});
+    });
 
     // ===================================================================
     // 6. EVENT LISTENERS (A PARTE QUE FALTAVA!)

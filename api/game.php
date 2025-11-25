@@ -387,7 +387,11 @@ if ($action === 'attack' || $action === 'defend' || $action === 'potion') {
 
             $result = calculateBattleDamage($player['combat_stats'], $monster_temp_stats);
             $monster['hp'] -= $result['damage'];
+            if($player['hp']+$result['lifesteal']>$player['base_stats']['max_hp']){
+                $player['hp']=$player['base_stats']['max_hp'];
+            } else {
             $player['hp'] += $result['lifesteal']; // Aplica lifesteal se houver
+            }
             $state['turn_flags']['monster_hit'] = true;
             $log[] = "Você atacou: " . $result['log'];
             $state['meters']['player'] = 0;

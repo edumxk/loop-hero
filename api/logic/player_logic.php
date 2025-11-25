@@ -220,7 +220,7 @@ function checkLevelUp($player) {
         $player = recalculate_player_stats($player);
         
         // Cura ao subir de nível
-        $player['hp'] = ceil($player['base_stats']['max_hp'] * 0.50); // Cura 50% do HP máximo ao subir de nível
+        $player['hp'] += ceil($player['base_stats']['max_hp'] * 0.40); // Cura 50% do HP máximo ao subir de nível
 
         $player['exp_to_next_level'] = $xp_next;
     }

@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loop Hero: A Floresta Eterna</title>
     <link rel="stylesheet" href="style.css">
@@ -27,9 +28,15 @@
             <p class="press-start">Clique para Iniciar</p>
             <small class="version">v1.3</small>
         </div>
-    <audio id="menu-audio" preload="auto">
-            <source src="assets/sounds/prologo/menu.mp3" type="audio/mpeg">
-        </audio>
+    <audio id="menu-audio" preload="auto" loop>
+        <source src="assets/sounds/prologo/menu.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="battle-theme" preload="auto" loop>
+        <source src="assets/sounds/battle/battle_theme.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="step-audio" preload="auto">
+        <source src="assets/sounds/map/step.mp3" type="audio/mpeg">
+    </audio>
 
     <div id="title-screen" class="view-hidden">
         <h1 class="game-title">A Floresta Eterna</h1>
