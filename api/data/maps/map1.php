@@ -24,12 +24,13 @@ return [
         [0, 1, 1, 1, 1, 1, 0], // Linha 10
         [0, 1, 0, 0, 0, 1, 0], // Linha 11
         [0, 1, 0, 0, 0, 0, 0], // Linha 12
-        [0, 1, 1, 1, 1, 1, 0], // Linha 13
+        [0, 1, 1, 1, 1, 1, 1], // Linha 13
         [0, 0, 0, 'S', 0, 0, 0], // Linha 14
     ],
 
     // Eventos (o que acontece em cada célula)
     'events' => [
+        '13,6' => ['type' => 'shop'],
         '13,4' => [
             'type' => 'monster',
             'difficulty' => 'easy',
@@ -38,7 +39,7 @@ return [
         '13,5' => [
             'type' => 'treasure',
             'treasure_type' => 'gold',
-            'value' => 5
+            'value' => 750
         ],
         '12,1' => [
             'type' => 'monster',
@@ -51,13 +52,9 @@ return [
             'monster_id' => 'goblin'
         ],
         '11,5' => [
-            'type' => 'trap',
-            'damage' => 5
-        ],
-        '13,5' => [
             'type' => 'treasure',
-            'treasure_type' => 'potion',
-            'value' => 2
+            'treasure_type' => 'gold',
+            'value' => 75
         ],
          '9,0' => [
             'type' => 'treasure',
@@ -92,7 +89,7 @@ return [
         '5,3' => [
             'type' => 'treasure',
             'treasure_type' => 'gold',
-            'value' => 5
+            'value' => 50
         ],
         '5,5' => [
             'type' => 'monster',
@@ -107,7 +104,7 @@ return [
         '3,2' => [
             'type' => 'treasure',
             'treasure_type' => 'gold',
-            'value' => 5
+            'value' => 35
         ], // Centro
         '3,6' => [
             'type' => 'monster',
@@ -131,7 +128,7 @@ return [
         '1,5' => [
             'type' => 'treasure',
             'treasure_type' => 'gold',
-            'value' => 5
+            'value' => 50
         ],
         '3,1' => [
             'type' => 'monster',

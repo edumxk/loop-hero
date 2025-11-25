@@ -79,6 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapHudPotions = document.getElementById('map-hud-potions');
     const mapHudHp = document.getElementById('map-hud-hp');
 
+    const shopModal = document.getElementById('shop-modal');
+    const btnCloseShop = document.getElementById('btn-close-shop');
+    const shopBuyButtons = document.querySelectorAll('.btn-buy');
+
     // ===================================================================
     // 1. LÓGICA DE MENU E NAVEGAÇÃO
     // ===================================================================
@@ -358,6 +362,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function showDamageText(targetId, amount, type = 'normal') {
+        const container = document.getElementById(targetId); // 'player-sprite' ou 'monster-sprite'
+        if (!container) return;
+
+        const text = document.createElement('div');
+        text.className = 'damage-text';
+
+        // Configura o conteúdo e estilo
+        if (type === 'crit') {
+            text.innerText = amount + "!";
+            text.classList.add('crit');
+        } else if (type === 'heal') {
+            text.innerText = "+" + amount;
+            text.classList.add('heal');
+        } else {
+            text.innerText = amount;
+        }
+
+        container.appendChild(text);
+
+        // Remove do DOM após a animação (1s)
+        setTimeout(() => {
+            text.remove();
+        }, 1000);
+    }
+
+    // ===================================================================
+    // FUNÇÃO: ATUALIZAR A LOJA (INTERFACE)
+    // ===================================================================
+    function updateShopUI() {
+        // Segurança: Se não houver dados do jogador, não faz nada
+        //if (!playerDataCache) return;
+        console.log("Atualizando UI da Loja com dados do jogador:", playerDataCache);
+        const p = playerDataCache;
+
+        // 1. Atualiza o Saldo de Ouro no Topo
+        let goldDisplay = document.getElementById('shop-gold-display');
+        if (goldDisplay) goldDisplay.innerText = p.gold;
+        
+        // 2. Atualiza Quantidades do Inventário (O que você já tem)
+        let elPotions = document.getElementById('shop-has-potions');
+        let elPoints = document.getElementById('shop-has-points');
+        
+        if (elPotions) elPotions.innerText = p.potions;
+        if (elPoints) elPoints.innerText = p.attribute_points;
+        
+        // 3. Tabela de Preços (Deve ser igual ao do PHP)
+        const PRICES = {
+            'potion': 50,
+            'attribute_point': 100
+        };
+
+        // 4. Atualiza Estado dos Botões (Ativa/Desativa)
+        const shopButtons = document.querySelectorAll('.btn-buy');
+        
+        shopButtons.forEach(btn => {
+            let item = btn.dataset.item; // 'potion' ou 'attribute_point'
+            const price = PRICES[item];
+            
+            if (price) {
+                // Se o ouro atual é menor que o preço, desativa o botão
+                if (p.gold < price) {
+                    btn.disabled = true;
+                    btn.innerText = "Sem Ouro";
+                    btn.style.opacity = "0.5";
+                    btn.style.cursor = "not-allowed";
+                } else {
+                    btn.disabled = false;
+                    btn.innerText = "Comprar";
+                    btn.style.opacity = "1";
+                    btn.style.cursor = "pointer";
+                }
+            }
+        });
+    }
 
     // ===================================================================
     // 3. LOOP DE BATALHA (ATB)
@@ -449,10 +528,97 @@ document.addEventListener('DOMContentLoaded', () => {
             mapControls.style.pointerEvents = 'auto';
             return;
         }
-        console.log('Passandi por playerdatacache');
         if (response.player) {
-            console.log('Atualizando cache de jogador...');
             playerDataCache = response.player;
+        }
+        // --- ABRIR LOJA (Vem do get_shop_data) ---
+        if (response.view === 'open_shop') {
+            // 1. Atualiza Cache
+            playerDataCache = response.player;
+            
+            // 2. Atualiza HUD do Mapa (Para garantir que o ouro coletado no chão apareça)
+            updateMapHud({ 
+                gold: response.player.gold, 
+                potions: response.player.potions, 
+                hp: response.player.hp, 
+                max_hp: response.player.base_stats.max_hp 
+            });
+
+            // 3. Preenche e Abre a Loja
+            updateShopUI();
+            document.getElementById('shop-modal').classList.remove('view-hidden');
+            mapControls.style.pointerEvents = 'none';
+        }
+
+        // --- PÓS-COMPRA (Vem do buy_item) ---
+        if (response.view === 'shop_update') {
+            if (response.success) {
+                // 1. Atualiza Cache Global (CRUCIAL: Agora temos menos ouro e mais itens)
+                playerDataCache = response.player; 
+                
+                // 2. Atualiza a UI da Loja (Botões e Textos do Modal)
+                updateShopUI(); 
+                
+                // 3. Atualiza o HUD do Mapa lá no fundo (Ouro, Poções, HP)
+                // Isso resolve o seu problema de "reload nas poções e ouro"
+                updateMapHud({ 
+                    gold: response.player.gold, 
+                    potions: response.player.potions, 
+                    hp: response.player.hp, 
+                    max_hp: response.player.base_stats.max_hp 
+                });
+
+                // 4. Feedback Visual
+                const feedback = document.getElementById('shop-feedback');
+                if (feedback) {
+                    feedback.innerText = response.log;
+                    feedback.style.color = '#2ecc71';
+                    setTimeout(() => feedback.innerText = "", 2000);
+                }
+            } else {
+                // Erro
+                const feedback = document.getElementById('shop-feedback');
+                if (feedback) {
+                    feedback.innerText = response.error || "Erro.";
+                    feedback.style.color = '#c0392b';
+                }
+            }
+        }
+        // --- RESPOSTA DE COMPRA ---
+        if (response.view === 'shop_update') {
+            
+            if (response.success) {
+                // 1. ATUALIZA O CACHE GLOBAL (Importantíssimo!)
+                // Sem isso, o updateShopUI vai ler o ouro antigo
+                playerDataCache = response.player; 
+                
+                // 2. REDESENHA O MODAL DA LOJA
+                // Isso vai atualizar o texto do ouro e re-verificar os botões
+                updateShopUI(); 
+                
+                // 3. Feedback Visual (Mensagem verde)
+                const feedback = document.getElementById('shop-feedback');
+                if (feedback) {
+                    feedback.innerText = response.log;
+                    feedback.style.color = '#2ecc71'; // Verde sucesso
+                    setTimeout(() => { feedback.innerText = ""; }, 2000);
+                }
+
+                // 4. Atualiza o HUD do Mapa (para ficar sincronizado lá atrás)
+                updateMapHud({ 
+                    gold: response.player.gold, 
+                    potions: response.player.potions, 
+                    hp: response.player.hp, 
+                    max_hp: response.player.base_stats.max_hp 
+                });
+            } else {
+                // Se deu erro (ex: Ouro insuficiente no servidor)
+                const feedback = document.getElementById('shop-feedback');
+                if (feedback) {
+                    feedback.innerText = response.error || "Erro na compra.";
+                    feedback.style.color = '#c0392b'; // Vermelho erro
+                }
+            }
         }
 
         if (response.view === 'map') {
@@ -461,10 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentPlayerId = response.player.hero_id_key;
                 drawMapScreen(response.player, response.map_data);
             }
+           
             if (response.player_pos) movePlayerAvatar(response.player_pos.x, response.player_pos.y);
             if (response.hud_update) updateMapHud(response.hud_update);
             if (response.log) mapLog.innerText = response.log;
-
+        
             if (response.event) {
                 if (response.event.type === 'monster') {
                     mapLog.innerText = "Monstro! Batalha em 1s...";
@@ -476,14 +643,41 @@ document.addEventListener('DOMContentLoaded', () => {
                             monster_id: response.event.monster_id || null
                         });
                     }, 1000);
-                } else if (['trap', 'treasure'].includes(response.event.type)) {
+                }else if (['trap', 'treasure'].includes(response.event.type)) {
+                    
+                    // 1. Atualiza visualmente a célula (marca como completado)
                     const cell = document.getElementById(`cell-${response.player_pos.y}-${response.player_pos.x}`);
                     if (cell) {
                         cell.classList.remove('event', 'monster-event');
                         cell.classList.add('completed');
                     }
+
+                    // 2. ATUALIZAÇÃO CRÍTICA: Se o evento alterou Ouro ou HP
+                    // A resposta 'move' já traz 'hud_update', vamos usá-lo para atualizar a tela
+                    if (response.hud_update) {
+                        updateMapHud(response.hud_update);
+                    }
+
+                    // 3. Atualiza o cache global do jogador (se vier na resposta)
+                    // Isso garante que se você abrir a loja ou personagem em seguida, o ouro esteja lá
+                    if (response.player) {
+                        playerDataCache = response.player;
+                        // Atualiza a UI da loja em background para garantir sincronia
+                        updateShopUI(); 
+                    }
+
+                    // 4. Libera movimento
                     mapControls.style.pointerEvents = 'auto';
-                }
+                }// --- EVENTO DE LOJA ---
+            else if (response.event.type === 'shop') {
+                mapLog.innerText = "Você encontrou um mercador!";
+                
+                // Pequeno delay para ver a mensagem
+                setTimeout(() => {
+                    updateShopUI();
+                    shopModal.classList.remove('view-hidden');
+                }, 500);
+            }
             } else {
                 mapControls.style.pointerEvents = 'auto';
             }
@@ -548,6 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
     }
+   
 
     // ===================================================================
     // 5. DESENHO DE TELA (MAPA E BATALHA)
@@ -878,30 +1073,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function showDamageText(targetId, amount, type = 'normal') {
-        const container = document.getElementById(targetId); // 'player-sprite' ou 'monster-sprite'
-        if (!container) return;
+     btnCloseShop.addEventListener('click', () => {
+        shopModal.classList.add('view-hidden');
+        // Opcional: Mover o jogador "para trás" para não reativar a loja imediatamente?
+        // Por enquanto, como eventos de mapa só disparam ao entrar na célula,
+        // fechar o modal deixa você na célula da loja. Se mover e voltar, abre de novo.
+        // Isso é o comportamento padrão de RPG.
+        mapControls.style.pointerEvents = 'auto';
+    });
 
-        const text = document.createElement('div');
-        text.className = 'damage-text';
-
-        // Configura o conteúdo e estilo
-        if (type === 'crit') {
-            text.innerText = amount + "!";
-            text.classList.add('crit');
-        } else if (type === 'heal') {
-            text.innerText = "+" + amount;
-            text.classList.add('heal');
-        } else {
-            text.innerText = amount;
-        }
-
-        container.appendChild(text);
-
-        // Remove do DOM após a animação (1s)
-        setTimeout(() => {
-            text.remove();
-        }, 1000);
-    }
-
+    shopBuyButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const item = btn.dataset.item; // 'potion' ou 'attribute_point'
+            sendAction('buy_item', { 
+                hero_id: currentPlayerId, 
+                item: item 
+            });
+            sendAction('get_shop_data', { hero_id: currentPlayerId });
+        });
+    });
 });

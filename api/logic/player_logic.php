@@ -72,6 +72,8 @@ function recalculate_player_stats($player) {
 
     $new_spd = $template['base_stats']['speed']
              + ($agi * $WEIGHTS['agility_to_spd']);
+
+    $new_hp_max = ($growth_hp * $level) + $template['base_stats']['max_hp'];
     // -- HP MÁXIMO --
     // Base do Arquivo + (Vitalidade * X - se tiver atributo vit) + (Nível * 10)
     // Aqui estamos somando ao que já está no DB, mas o ideal seria recalcular tudo.
@@ -97,6 +99,7 @@ function recalculate_player_stats($player) {
     $player['combat_stats']['crit_chance'] = $new_crit;
     $player['combat_stats']['crit_mult'] = round($new_crit_mult,2);
     $player['combat_stats']['speed'] = round($new_spd);
+    $player['base_stats']['max_hp'] = ceil($new_hp_max);
 
     // Atualiza também a Speed baseada na Agilidade/Speed stat se desejar
     // $player['base_stats']['speed'] = ... (se quiser recalcular speed também)
@@ -249,7 +252,7 @@ function savePlayerState($pdo, $player) {
     $stmt->execute([
         ':level' => $player['level'],
         ':exp' => $player['exp'],
-        ':hp' => $player['hp'],
+        ':hp' => ceil($player['hp']),
         ':base' => json_encode($player['base_stats']),
         ':combat' => json_encode($player['combat_stats']),
         ':equip' => json_encode($player['equipment']),

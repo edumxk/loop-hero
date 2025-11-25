@@ -191,6 +191,84 @@ if ($action === 'distribute_point') {
 }
 
 // ============================================================================
+// 7. SISTEMA DE LOJA (COMPRAR ITENS)
+// ============================================================================
+
+if ($action === 'buy_item') {
+    try {
+        $hero_id = $postData['hero_id'] ?? null;
+        $item = $postData['item'] ?? null; // 'potion', 'attribute_point'
+        
+        if (!$hero_id || !$item) throw new Exception("Dados de compra inválidos.");
+
+        $player = getPlayerState($pdo, $hero_id);
+
+        // --- PREÇOS ---
+        $PRICES = [
+            'potion' => 50,
+            'attribute_point' => 100
+        ];
+
+        if (!isset($PRICES[$item])) throw new Exception("Item não existe na loja.");
+
+        $cost = $PRICES[$item];
+
+        // 1. Valida Saldo
+        if ($player['gold'] < $cost) {
+            echo json_encode(['error' => 'Ouro insuficiente!']);
+            exit;
+        }
+
+        // 2. Processa Compra
+        $player['gold'] -= $cost;
+        $msg = "";
+
+        if ($item === 'potion') {
+            $player['potions']++;
+            $msg = "Você comprou uma Poção de Vida!";
+        } 
+        elseif ($item === 'attribute_point') {
+            $player['attribute_points']++;
+            $msg = "Você comprou um Ponto de Atributo!";
+        }
+
+        // 3. Salva
+        savePlayerState($pdo, $player);
+
+        echo json_encode([
+            'view' => 'shop_update', // View específica para atualizar loja/hud
+            'player' => $player,
+            'log' => $msg,
+            'success' => true
+        ]);
+        exit;
+
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+        exit;
+    }
+}
+// --- OBTER DADOS PARA ABRIR A LOJA (Sync com Banco) ---
+if ($action === 'get_shop_data') {
+    try {
+        $hero_id = $postData['hero_id'] ?? null;
+        if (!$hero_id) throw new Exception("Hero ID missing");
+
+        // Busca dados fresquinhos do banco (incluindo o ouro que acabou de pegar)
+        $player = getPlayerState($pdo, $hero_id);
+
+        echo json_encode([
+            'view' => 'open_shop', // Uma view específica para abrir o modal
+            'player' => $player
+        ]);
+        exit;
+    } catch (Exception $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+        exit;
+    }
+}
+// ============================================================================
 // SISTEMA DE BATALHA (ATB)
 // ============================================================================
 

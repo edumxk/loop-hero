@@ -285,6 +285,50 @@
             </div>
         </div>
     </div>
+    <div id="shop-modal" class="view-hidden">
+        <div class="shop-sheet">
+            <div class="shop-header">
+                <h2>🛒 Loja do Viajante</h2>
+                <button id="btn-close-shop">Sair</button>
+            </div>
+            
+            <div class="shop-balance">
+                Seu Ouro: <b id="shop-gold-display" style="color: gold;">0</b>
+            </div>
+
+            <div class="shop-items">
+                
+                <div class="shop-item-card">
+                    <div class="item-icon">🧪</div>
+                    <div class="item-details">
+                        <h3>Poção de Vida</h3>
+                        <p>Recupera vida em batalha.</p>
+                        <small>Você tem: <b id="shop-has-potions">0</b></small>
+                    </div>
+                    <div class="item-buy">
+                        <span class="price">50 💰</span>
+                        <button class="btn-buy" data-item="potion">Comprar</button>
+                    </div>
+                </div>
+
+                <div class="shop-item-card">
+                    <div class="item-icon">✨</div>
+                    <div class="item-details">
+                        <h3>Ponto de Status</h3>
+                        <p>Fique mais forte permanentemente.</p>
+                        <small>Disponíveis: <b id="shop-has-points">0</b></small>
+                    </div>
+                    <div class="item-buy">
+                        <span class="price">100 💰</span>
+                        <button class="btn-buy" data-item="attribute_point">Comprar</button>
+                    </div>
+                </div>
+
+            </div>
+            
+            <p id="shop-feedback" style="text-align: center; color: #2ecc71; height: 20px;"></p>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

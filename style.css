@@ -953,3 +953,86 @@ h4 { color: #e67e22; margin-bottom: 15px; text-align: left; border-bottom: 1px s
         transform: translateX(-50%) scale(1);
     }
 }
+
+/* --- MODAL DA LOJA --- */
+#shop-modal {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.95); z-index: 2000;
+    display: flex; justify-content: center; align-items: center;
+}
+
+.shop-sheet {
+    background: #1a1a1a; border: 2px solid #f1c40f; /* Borda Dourada */
+    width: 95%; max-width: 600px;
+    padding: 20px; border-radius: 8px;
+    box-shadow: 0 0 50px rgba(241, 196, 15, 0.2);
+}
+
+.shop-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #444; padding-bottom: 15px; margin-bottom: 15px;
+}
+.shop-header h2 { color: #f1c40f; margin: 0; }
+
+#btn-close-shop {
+    background: #333; color: #fff; border: 1px solid #555;
+    padding: 8px 20px; cursor: pointer; border-radius: 4px;
+}
+#btn-close-shop:hover { background: #c0392b; border-color: #c0392b; }
+
+.shop-balance {
+    text-align: right; font-size: 1.2rem; margin-bottom: 20px;
+    background: #252525; padding: 10px; border-radius: 4px;
+}
+
+.shop-items { display: flex; flex-direction: column; gap: 15px; }
+
+.shop-item-card {
+    display: flex; align-items: center; gap: 15px;
+    background: #222; padding: 15px; border-radius: 8px;
+    border: 1px solid #333; transition: 0.2s;
+}
+.shop-item-card:hover { border-color: #f1c40f; background: #2a2a2a; }
+
+.item-icon { font-size: 2.5rem; width: 60px; text-align: center; }
+
+.item-details { flex: 1; }
+.item-details h3 { text-align: left; margin: 0 0 5px 0; color: #fff; font-size: 1.1rem; }
+.item-details p { margin: 0; color: #aaa; font-size: 0.9rem; }
+.item-details small { color: #666; }
+.item-details b { color: #eee; }
+
+.item-buy { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 100px; }
+.price { color: #f1c40f; font-weight: bold; }
+
+/* Botão de Compra */
+.btn-buy {
+    background: #27ae60; 
+    color: white; 
+    border: none;
+    padding: 8px 15px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.btn-buy:hover { 
+    background: #2ecc71; 
+    transform: translateY(-2px); 
+}
+
+.btn-buy:active { 
+    transform: translateY(0); 
+}
+
+/* --- ESTADO DESABILITADO (SEM OURO) --- */
+.btn-buy:disabled {
+    background-color: #555 !important; /* Cinza */
+    color: #888 !important;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+    opacity: 0.6;
+}
