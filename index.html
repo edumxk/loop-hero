@@ -50,6 +50,21 @@
         <div class="credits">v1.0 - Loop RPG</div>
     </div>
 
+    <div id="login-view" class="view-hidden">
+        <h1 class="game-title">Identificação</h1>
+        
+        <div class="login-box">
+            <input type="number" id="login-cpf" placeholder="CPF (Somente números)" pattern="\d*">
+            <input type="password" id="login-pass" placeholder="Senha (4 Dígitos)" maxlength="4">
+            
+            <div class="login-buttons">
+                <button id="btn-login" class="main-menu-btn">Entrar</button>
+                <button id="btn-register" class="secondary-btn">Cadastrar Novo</button>
+            </div>
+            <p id="login-msg"></p>
+        </div>
+    </div>
+    
     <div id="prologue-view" class="view-hidden">
         <button id="btn-skip-prologue" class="skip-btn">Pular Intro >></button>
         <audio id="prologue-audio" preload="auto">
