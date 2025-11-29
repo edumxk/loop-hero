@@ -7,46 +7,41 @@ define('DB_PATH', __DIR__ . '/../game.db');
  * CRIA O BANCO E A TABELA SE NÃO EXISTIREM.
  */
 function getDbConnection() {
-    try {
-        // 1. Tenta conectar (ou criar o arquivo .db)
-        $pdo = new PDO('sqlite:' . DB_PATH);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $dbExists = file_exists(__DIR__ . '/../game.db');
+    $pdo = new PDO('sqlite:' . __DIR__ . '/../game.db');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // 2. Verifica se a tabela 'heroes' existe
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS heroes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                hero_id_key TEXT NOT NULL UNIQUE,
-                class_name TEXT NOT NULL,
-                level INTEGER NOT NULL DEFAULT 1,
-                exp INTEGER NOT NULL DEFAULT 0,
-                exp_to_next_level INTEGER NOT NULL DEFAULT 50,
-                hp INTEGER NOT NULL,
-                base_stats_json TEXT NOT NULL,
-                combat_stats_json TEXT NOT NULL,
-                equipment_json TEXT NOT NULL,
-                attribute_points INTEGER NOT NULL DEFAULT 0,
-                current_map_id TEXT,
-                current_map_pos_x INTEGER,
-                current_map_pos_y INTEGER,
-                gold INTEGER NOT NULL DEFAULT 0,
-                potions INTEGER NOT NULL DEFAULT 3,
-                
-                -- Coluna de Eventos Concluídos --
-                completed_events_json TEXT NOT NULL DEFAULT '{}'
-            );
-        ");
+    if (!$dbExists) {
+        // 1. Tabela de Usuários (Nova)
+        $pdo->exec("CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            cpf TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )");
 
-        return $pdo;
-
-    } catch (PDOException $e) {
-        // Envia uma resposta de erro JSON se a conexão falhar
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'error' => 'Falha na conexão com o banco de dados: ' . $e->getMessage()
-        ]);
-        die(); // Interrompe o script
+        // 2. Tabela de Heróis (Atualizada com user_id)
+        $pdo->exec("CREATE TABLE heroes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL, -- Vínculo com o dono do save
+            hero_id_key TEXT,
+            class_name TEXT,
+            level INTEGER,
+            exp INTEGER,
+            exp_to_next_level INTEGER,
+            hp INTEGER,
+            base_stats_json TEXT,
+            combat_stats_json TEXT,
+            equipment_json TEXT,
+            attribute_points INTEGER,
+            current_map_id TEXT,
+            current_map_pos_x INTEGER,
+            current_map_pos_y INTEGER,
+            gold INTEGER,
+            potions INTEGER,
+            completed_events_json TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )");
     }
+    return $pdo;
 }

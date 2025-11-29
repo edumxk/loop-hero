@@ -86,6 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const battleTheme = document.getElementById('battle-theme');
     const stepAudio = document.getElementById('step-audio'); // <--- NOVO SELETOR
 
+    const loginView = document.getElementById('login-view');
+    const loginCpf = document.getElementById('login-cpf');
+    const loginPass = document.getElementById('login-pass');
+    const btnLogin = document.getElementById('btn-login');
+    const btnRegister = document.getElementById('btn-register');
+    const loginMsg = document.getElementById('login-msg');
+
     // ===================================================================
     // 1. LÓGICA DE MENU E NAVEGAÇÃO
     // ===================================================================
@@ -96,20 +103,26 @@ document.addEventListener('DOMContentLoaded', () => {
     showView('start-screen');
 
     function initGameAudio() {
-        // 1. Toca a música do menu
+        // 1. Toca a música do menu (MANTIDO)
         playMenuMusic();
-        if (menuAudio) {
-            menuAudio.volume = 0.6; // Volume agradável
-            menuAudio.play().catch(e => console.log("Áudio bloqueado:", e));
-        }
-
-        // 2. Remove listener para não disparar dnv
+        
+        // 2. Remove listeners (MANTIDO)
         document.removeEventListener('click', initGameAudio);
         document.removeEventListener('keydown', initGameAudio);
 
-        // 3. Carrega os saves e vai para o menu real
-        checkSaves();
-        hideStartScreenWithFade();
+        // 3. TRANSIÇÃO PARA LOGIN (ALTERADO)
+        // Em vez de ir direto para o jogo (checkSaves), vamos para o login
+        const startScreen = document.getElementById('start-screen');
+        
+        // Inicia o Fade Out visual
+        startScreen.style.pointerEvents = 'none';
+        startScreen.style.opacity = '0'; 
+
+        setTimeout(() => {
+            startScreen.classList.add('view-hidden');
+            // AQUI É A MUDANÇA: Vai para o Login em vez do Menu Principal
+            showView('login-view'); 
+        }, 2000); // 2 segundos de fade
     }
 
     function playStepSound() {
@@ -252,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showView(viewId) {
-        const views = [titleScreen, prologueView, heroSelectionView, gameView, mapView];
+        const views = [titleScreen, loginView, prologueView, heroSelectionView, gameView, mapView];
         views.forEach(v => v.classList.add('view-hidden'));
         document.getElementById(viewId).classList.remove('view-hidden');
     }
@@ -600,6 +613,40 @@ document.addEventListener('DOMContentLoaded', () => {
             isProcessingAction = false;
         }
     }
+    async function handleAuth(action) {
+        const cpf = loginCpf.value.trim();
+        const password = loginPass.value.trim();
+
+        if (password.length !== 4) {
+            loginMsg.innerText = "Senha deve ter 4 dígitos."; return;
+        }
+        if (!cpf) {
+            loginMsg.innerText = "CPF obrigatório."; return;
+        }
+
+        try {
+            const response = await fetch(`api/game.php?action=${action}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cpf, password })
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                loginMsg.innerText = data.error;
+            } else if (data.success) {
+                // SUCESSO: Vai para o Menu
+                loginMsg.innerText = "";
+                // Opcional: Salvar nome no localStorage ou mostrar na tela
+                checkSaves(); // Carrega os saves deste usuário e mostra o menu
+            }
+        } catch (e) {
+            loginMsg.innerText = "Erro de conexão.";
+        }
+    }
+
+    btnLogin.addEventListener('click', () => handleAuth('login'));
+    btnRegister.addEventListener('click', () => handleAuth('register'));
 
     function handleApiResponse(response) {
         if (response.error) {
